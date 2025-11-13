@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+//
+// =====================
+//       USER
+// =====================
+//
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  code      String
+  phone     String   @unique
+  email     String?
+  password  String
+  myCode    String   @unique
+  balance   Float    @default(0)
+  createdAt DateTime @default(now())
+
+  xp        Int      @default(0)
+  level     Int      @default(1)
+
+  wallet       Wallet?
+  tasksLog     TaskLog[]
+  rewards      DailyReward[]
+  withdrawals  Withdraw[]
+}
+
+//
+// =====================
+//       WALLET
+// =====================
+//
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  balance   Float    @default(0)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+//
+// =====================
+//      TASK LOG
+// =====================
+//
+model TaskLog {
+  id        String   @id @default(uuid())
+  userId    String
+  taskName  String
+  reward    Float    @default(0)
+  date      DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+//
+// =====================
+//    DAILY REWARD
+// =====================
+//
+model DailyReward {
+  id        String   @id @default(uuid())
+  userId    String
+  lastClaim DateTime?
+  streak    Int      @default(0)
+
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+//
+// =====================
+//     WITHDRAW
+// =====================
+//
+model Withdraw {
+  id        String   @id @default(uuid())
+  userId    String
+  amount    Float
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+}
+model Task {
+  key        String   @id
+  title      String
+  icon       String?
+  rewardBase Float    @default(0)
+  rewardXP   Int      @default(0)
+  limitPerDay Int     @default(1)
+  cooldownHours Int   @default(0)
+}
