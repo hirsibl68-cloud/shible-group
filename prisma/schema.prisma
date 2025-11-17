@@ -20,17 +20,21 @@ model User {
   email     String?
   password  String
   myCode    String   @unique
-  refCode   String?              // <-- الحقل الجديد (الكود اللي دعا المستخدم)
+  refCode   String?              // الكود الذي دعا المستخدم (الإحالة)
   balance   Float    @default(0)
   createdAt DateTime @default(now())
 
   xp        Int      @default(0)
   level     Int      @default(1)
 
+  // العلاقات
   wallet       Wallet?
   tasksLog     TaskLog[]
   rewards      DailyReward[]
   withdrawals  Withdraw[]
+  luckyStrikes LuckyStrike[]
+  dailyGifts   DailyGift[]
+  gamePlays    GamePlay[]
 }
 
 //
@@ -50,23 +54,27 @@ model Wallet {
 //
 // =====================
 //      TASK LOG
+//      سجل المهام
 // =====================
 //
 model TaskLog {
   id        String   @id @default(uuid())
   userId    String
-  taskName  String
-  reward    Float    @default(0)
-  date      DateTime @default(now())
+  taskKey   String               // مفتاح المهمة (مطابق لـ Task.key)
+  rewardUSD Float    @default(0) // قيمة المكافأة بالدولار
+  xpGain    Int      @default(0) // نقاط الخبرة المكتسبة
+  createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([userId, taskKey, createdAt])
 }
 
 //
 // =====================
 //    DAILY REWARD
+//    مكافأة يومية / ستريك
 // =====================
 //
 model DailyReward {
@@ -81,6 +89,7 @@ model DailyReward {
 //
 // =====================
 //     WITHDRAW
+//     طلبات السحب
 // =====================
 //
 model Withdraw {
@@ -93,12 +102,71 @@ model Withdraw {
   user      User     @relation(fields: [userId], references: [id])
 }
 
+//
+// =====================
+//        TASK
+//   تعريف المهام الأساسية
+// =====================
+//
 model Task {
-  key          String   @id
-  title        String
-  icon         String?
-  rewardBase   Float    @default(0)
-  rewardXP     Int      @default(0)
-  limitPerDay  Int      @default(1)
-  cooldownHours Int     @default(0)
+  key           String  @id        // مفتاح المهمة الفريد (login_daily, watch_video, lucky_box ...)
+  title         String             // عنوان المهمة
+  icon          String?            // أيقونة اختيارية
+  rewardBase    Float   @default(0) // مكافأة أساسية بالدولار
+  rewardXP      Int     @default(0) // مكافأة XP
+  limitPerDay   Int     @default(1) // الحد اليومي للتنفيذ
+  cooldownHours Int     @default(0) // فترة التبريد بين محاولتين (بالساعات)
+}
+
+//
+// =====================
+//    LUCKY STRIKE
+//    ضربة الحظ كل 3 أيام
+// =====================
+//
+model LuckyStrike {
+  id        String   @id @default(uuid())
+  userId    String
+  amount    Float
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+//
+// =====================
+//     DAILY GIFT
+//     هدايا/جوائز يومية
+// =====================
+//
+model DailyGift {
+  id        String   @id @default(uuid())
+  userId    String
+  amount    Float
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+//
+// =====================
+//      GAME PLAY
+//      سجلات الألعاب المصغّرة
+// =====================
+//
+model GamePlay {
+  id        String   @id @default(uuid())
+  userId    String
+  gameKey   String               // مفتاح اللعبة (scratch_card, wheel_spin, box_open ...)
+  amount    Float    @default(0) // الربح أو الخسارة في اللعبة (موجب/سالب أو صفر)
+  outcome   String?              // وصف مختصر (win, lose, jackpot...)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, gameKey, createdAt])
 }

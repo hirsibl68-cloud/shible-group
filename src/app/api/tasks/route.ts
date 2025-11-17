@@ -10,7 +10,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "bad_request" }, { status: 400 });
     }
 
-    // جلب المهمة من قاعدة البيانات
+    // 1) جلب تعريف المهمة من قاعدة البيانات
     const task = await prisma.task.findUnique({
       where: { key: taskKey },
     });
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "task_not_found" }, { status: 404 });
     }
 
-    // جلب المستخدم
+    // 2) جلب المستخدم مع المحفظة
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { wallet: true },
@@ -31,37 +31,35 @@ export async function POST(req: Request) {
 
     const now = new Date();
 
-    // ****** 1) فحص limitPerDay ********
+    // ===========================
+    //   A) فحص limitPerDay لليوم
+    // ===========================
     const start = new Date();
     start.setHours(0, 0, 0, 0);
     const end = new Date();
     end.setHours(23, 59, 59, 999);
 
-    const count = await prisma.taskLog.count({
+    const countToday = await prisma.taskLog.count({
       where: {
         userId,
-        // نربط اللوق بنفس المفتاح عن طريق خزن المفتاح في taskName
         taskName: taskKey,
-        // الحقل الصحيح في الموديل هو date بدل createdAt
         date: { gte: start, lte: end },
       },
     });
 
-    if (count >= task.limitPerDay) {
+    if (countToday >= task.limitPerDay) {
       return NextResponse.json(
         { success: false, message: "limit_reached" },
         { status: 400 }
       );
     }
 
-    // ****** 2) فحص cooldown ********
+    // ===========================
+    //   B) فحص الـ cooldown العام
+    // ===========================
     if (task.cooldownHours > 0) {
       const last = await prisma.taskLog.findFirst({
-        where: {
-          userId,
-          taskName: taskKey,
-        },
-        // ترتيب على حسب الحقل date
+        where: { userId, taskName: taskKey },
         orderBy: { date: "desc" },
       });
 
@@ -82,49 +80,81 @@ export async function POST(req: Request) {
       }
     }
 
-    // ****** 3) حساب الأرباح حسب الإيداع ********
-    let depositBonus = 0;
+    // ===========================
+    //   C) حساب الجائزة
+    // ===========================
+    const balance = user.balance ?? 0;
+    let finalReward = task.rewardBase;
 
-    // نفترض أن user.balance هو مجموع الإيداعات
-    if (user.balance >= 100 && user.balance < 500) depositBonus = 0.5;
-    if (user.balance >= 500 && user.balance < 1000) depositBonus = 1.0;
-    if (user.balance >= 1000) depositBonus = 2.0;
-
-    // ****** 4) حساب الجائزة ********
-    let finalReward = task.rewardBase + depositBonus;
-
-    // Lucky Box (مكافأة عشوائية)
-    if (taskKey === "lucky_box") {
-      finalReward = Math.random() * (2.5 - 0.3) + 0.3; // من 0.3 إلى 2.5
-      finalReward = Number(finalReward.toFixed(2));
+    // 1) ضربة الحظ كل 3 أيام (2$ – 20$)
+    if (taskKey === "lucky_spin") {
+      const min = 2;
+      const max = 20;
+      const randomReward = Math.random() * (max - min) + min;
+      finalReward = Number(randomReward.toFixed(2));
     }
 
-    // ****** 5) XP & Level ********
+    // 2) الألعاب اليومية حسب رأس المال
+    else if (taskKey === "daily_game_easy" || taskKey === "daily_game_pro") {
+      let multiplier = 1;
+
+      if (balance >= 50 && balance < 200) multiplier = 1.2;
+      else if (balance >= 200 && balance < 500) multiplier = 1.5;
+      else if (balance >= 500 && balance < 1000) multiplier = 2;
+      else if (balance >= 1000) multiplier = 3;
+
+      // زيادة بسيطة لو كانت لعبة "مستثمر"
+      if (taskKey === "daily_game_pro") {
+        multiplier += 0.3;
+      }
+
+      finalReward = Number((task.rewardBase * multiplier).toFixed(2));
+    }
+
+    // 3) دعوة صديق – 5$ ثابتة (تضبط من rewardBase في الـ DB)
+    else if (taskKey === "invite_friend") {
+      finalReward = Number(task.rewardBase.toFixed(2));
+    }
+
+    // 4) باقي المهام اليومية – مكافأة ثابتة + Bonus حسب الإيداع
+    else {
+      let depositBonus = 0;
+
+      if (balance >= 100 && balance < 500) depositBonus = 0.5;
+      else if (balance >= 500 && balance < 1000) depositBonus = 1.0;
+      else if (balance >= 1000) depositBonus = 2.0;
+
+      finalReward = Number((task.rewardBase + depositBonus).toFixed(2));
+    }
+
+    // ===========================
+    //   D) XP & Level
+    // ===========================
     const oldXP = user.xp ?? 0;
     const { newXP, newLevel } = addXP(oldXP, task.rewardXP);
 
-    // تحديث المستخدم
     await prisma.user.update({
       where: { id: userId },
       data: { xp: newXP, level: newLevel },
     });
 
-    // ****** 6) إضافة الرصيد إلى المحفظة ********
+    // ===========================
+    //   E) تحديث المحفظة
+    // ===========================
     await prisma.wallet.upsert({
       where: { userId },
       create: { userId, balance: finalReward },
       update: { balance: { increment: finalReward } },
     });
 
-    // ****** 7) تسجيل المهمة في TaskLog ********
+    // ===========================
+    //   F) تسجيل المهمة في TaskLog
+    // ===========================
     await prisma.taskLog.create({
       data: {
         userId,
-        // نخزن المفتاح في taskName عشان نقدر نتحقق منه لاحقاً
         taskName: taskKey,
-        // الحقل الصحيح في الموديل reward
         reward: finalReward,
-        // نخزن التاريخ الحالي في date
         date: now,
       },
     });
