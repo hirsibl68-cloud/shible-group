@@ -84,6 +84,7 @@ export default function SignupPage() {
       <main className="flex items-center justify-center p-6 md:p-10">
         <div className="w-full max-w-md">
           <div className="bg-white border border-[#dce9ff] shadow-sm rounded-2xl p-6">
+            {/* الخطوة الحالية = 1 حالياً */}
             <Stepper current={1} />
 
             <form onSubmit={onSubmit} className="mt-6 space-y-4">
@@ -98,7 +99,11 @@ export default function SignupPage() {
 
               <div className="grid grid-cols-3 gap-2">
                 <Field label="الكود">
-                  <select value={code} onChange={(e) => setCode(e.target.value)} className="input">
+                  <select
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    className="input"
+                  >
                     <option value="+90">+90</option>
                     <option value="+971">+971</option>
                     <option value="+966">+966</option>
@@ -158,7 +163,11 @@ export default function SignupPage() {
               </Field>
 
               <div className="flex items-start gap-2">
-                <input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)} />
+                <input
+                  type="checkbox"
+                  checked={accept}
+                  onChange={(e) => setAccept(e.target.checked)}
+                />
                 <span className="text-sm text-[#345067]">
                   أوافق على الشروط والأحكام وسياسة الخصوصية
                 </span>
@@ -169,7 +178,10 @@ export default function SignupPage() {
               </button>
 
               <p className="text-center text-sm text-[#517694]">
-                لديك حساب؟ <Link href="/login" className="text-[#1b6fe0] font-semibold">تسجيل الدخول</Link>
+                لديك حساب؟{" "}
+                <Link href="/login" className="text-[#1b6fe0] font-semibold">
+                  تسجيل الدخول
+                </Link>
               </p>
             </form>
           </div>
@@ -182,7 +194,12 @@ export default function SignupPage() {
 /* -------------------- COMPONENTS -------------------- */
 
 function FeatureLine({ icon, text }: any) {
-  return <div className="flex items-center gap-3"><span>{icon}</span><span>{text}</span></div>;
+  return (
+    <div className="flex items-center gap-3">
+      <span>{icon}</span>
+      <span>{text}</span>
+    </div>
+  );
 }
 
 function Field({ label, error, children }: any) {
@@ -209,7 +226,11 @@ function PasswordMeter({ score }: any) {
   return (
     <div className="grid grid-cols-5 gap-1">
       {[0, 1, 2, 3, 4].map((i) => (
-        <div key={i} className="h-1.5 rounded" style={{ background: i <= score ? colors[score] : "#dce9ff" }} />
+        <div
+          key={i}
+          className="h-1.5 rounded"
+          style={{ background: i <= score ? colors[score] : "#dce9ff" }}
+        />
       ))}
     </div>
   );
@@ -219,6 +240,27 @@ function Logo() {
   return <div className="text-3xl font-bold text-[#2aa1ff]">AI</div>;
 }
 
-function Stepper() {
-  return <div className="flex justify-center"><div className="w-6 h-2 bg-[#2aa1ff] rounded-full" /></div>;
+type StepperProps = {
+  current: number;
+};
+
+function Stepper({ current }: StepperProps) {
+  const steps = [1, 2, 3];
+
+  return (
+    <div className="flex items-center justify-center gap-2 mb-2">
+      {steps.map((step) => {
+        const active = step === current;
+        return (
+          <div
+            key={step}
+            className={
+              "h-2 rounded-full " +
+              (active ? "w-8 bg-[#2aa1ff]" : "w-4 bg-[#dce9ff]")
+            }
+          />
+        );
+      })}
+    </div>
+  );
 }

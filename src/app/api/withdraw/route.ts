@@ -5,6 +5,7 @@ export async function POST(req: Request) {
   try {
     const { userId, amount, method, account } = await req.json();
 
+    // نتحقق من الحقول اللي جاية من الفرونت
     if (!userId || !amount || !method || !account) {
       return NextResponse.json({ error: "missing_fields" }, { status: 400 });
     }
@@ -23,7 +24,10 @@ export async function POST(req: Request) {
     }
 
     if (wallet.balance < amount) {
-      return NextResponse.json({ error: "insufficient_balance" }, { status: 400 });
+      return NextResponse.json(
+        { error: "insufficient_balance" },
+        { status: 400 }
+      );
     }
 
     // سحب من الرصيد
@@ -33,23 +37,30 @@ export async function POST(req: Request) {
     });
 
     // إنشاء طلب السحب
+    // ⚠️ هنا نخزن فقط الحقول الموجودة في Prisma model
     const w = await prisma.withdraw.create({
       data: {
         userId,
         amount,
-        method,
-        account,
         status: "pending",
+        // لا نرسل method ولا account لأنهم غير موجودين في الـ schema
       },
     });
 
-    return NextResponse.json({ success: true, withdraw: w });
+    // مع ذلك نرجعهم في الـ response لو حابب تعرضهم في الواجهة (ما في مشكلة)
+    return NextResponse.json({
+      success: true,
+      withdraw: w,
+      meta: {
+        method,
+        account,
+      },
+    });
   } catch (err) {
     console.log(err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
 }
-
 
 export async function GET(req: Request) {
   const userId = new URL(req.url).searchParams.get("userId");
