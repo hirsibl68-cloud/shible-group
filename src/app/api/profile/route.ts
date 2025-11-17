@@ -15,7 +15,7 @@ export async function GET(req: Request) {
       include: {
         wallet: true,
         rewards: { orderBy: { lastClaim: "desc" }, take: 1 },
-        tasksLog: { take: 1 },  // ← تم إزالة createdAt لأنها غير موجودة بالـ schema
+        tasksLog: { take: 1 }, // بدون orderBy لأنه مسبب خطأ
       },
     });
 
@@ -38,7 +38,10 @@ export async function GET(req: Request) {
       stats: {
         streak: lastReward?.streak ?? 0,
         lastRewardAt: lastReward?.lastClaim ?? null,
-        lastTaskAt: lastTask?.createdAt ?? null, // ← هذا مسموح لأنه موجود بقيمة عنصر tasksLog
+        // هنا استخدمنا الحقل الصحيح "date"
+        lastTaskAt: lastTask ? lastTask.date : null,
+        // لو حاببها سترنغ:
+        // lastTaskAt: lastTask ? lastTask.date.toISOString() : null,
       },
     });
   } catch (e) {
