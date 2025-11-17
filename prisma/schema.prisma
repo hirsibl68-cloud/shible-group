@@ -20,6 +20,7 @@ model User {
   email     String?
   password  String
   myCode    String   @unique
+  refCode   String?              // <-- الحقل الجديد (الكود اللي دعا المستخدم)
   balance   Float    @default(0)
   createdAt DateTime @default(now())
 
@@ -91,12 +92,13 @@ model Withdraw {
 
   user      User     @relation(fields: [userId], references: [id])
 }
+
 model Task {
-  key        String   @id
-  title      String
-  icon       String?
-  rewardBase Float    @default(0)
-  rewardXP   Int      @default(0)
-  limitPerDay Int     @default(1)
-  cooldownHours Int   @default(0)
+  key          String   @id
+  title        String
+  icon         String?
+  rewardBase   Float    @default(0)
+  rewardXP     Int      @default(0)
+  limitPerDay  Int      @default(1)
+  cooldownHours Int     @default(0)
 }
