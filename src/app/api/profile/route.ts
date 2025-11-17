@@ -15,7 +15,7 @@ export async function GET(req: Request) {
       include: {
         wallet: true,
         rewards: { orderBy: { lastClaim: "desc" }, take: 1 },
-        tasksLog: { orderBy: { createdAt: "desc" }, take: 1 },
+        tasksLog: { take: 1 },  // ← تم إزالة createdAt لأنها غير موجودة بالـ schema
       },
     });
 
@@ -38,7 +38,7 @@ export async function GET(req: Request) {
       stats: {
         streak: lastReward?.streak ?? 0,
         lastRewardAt: lastReward?.lastClaim ?? null,
-        lastTaskAt: lastTask?.createdAt ?? null,
+        lastTaskAt: lastTask?.createdAt ?? null, // ← هذا مسموح لأنه موجود بقيمة عنصر tasksLog
       },
     });
   } catch (e) {
