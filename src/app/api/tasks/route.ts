@@ -6,13 +6,18 @@ export async function POST(req: Request) {
   try {
     const { userId, taskKey } = await req.json();
 
-    if (!userId || !taskKey)
+    if (!userId || !taskKey) {
       return NextResponse.json({ error: "bad_request" }, { status: 400 });
+    }
 
     // جلب المهمة من قاعدة البيانات
-    const task = await prisma.task.findUnique({ where: { key: taskKey } });
-    if (!task)
+    const task = await prisma.task.findUnique({
+      where: { key: taskKey },
+    });
+
+    if (!task) {
       return NextResponse.json({ error: "task_not_found" }, { status: 404 });
+    }
 
     // جلب المستخدم
     const user = await prisma.user.findUnique({
@@ -20,8 +25,9 @@ export async function POST(req: Request) {
       include: { wallet: true },
     });
 
-    if (!user)
+    if (!user) {
       return NextResponse.json({ error: "user_not_found" }, { status: 404 });
+    }
 
     const now = new Date();
 
@@ -34,8 +40,10 @@ export async function POST(req: Request) {
     const count = await prisma.taskLog.count({
       where: {
         userId,
-        taskKey,
-        createdAt: { gte: start, lte: end },
+        // نربط اللوق بنفس المفتاح عن طريق خزن المفتاح في taskName
+        taskName: taskKey,
+        // الحقل الصحيح في الموديل هو date بدل createdAt
+        date: { gte: start, lte: end },
       },
     });
 
@@ -49,13 +57,17 @@ export async function POST(req: Request) {
     // ****** 2) فحص cooldown ********
     if (task.cooldownHours > 0) {
       const last = await prisma.taskLog.findFirst({
-        where: { userId, taskKey },
-        orderBy: { createdAt: "desc" },
+        where: {
+          userId,
+          taskName: taskKey,
+        },
+        // ترتيب على حسب الحقل date
+        orderBy: { date: "desc" },
       });
 
       if (last) {
         const diffHours =
-          (now.getTime() - last.createdAt.getTime()) / (1000 * 60 * 60);
+          (now.getTime() - last.date.getTime()) / (1000 * 60 * 60);
 
         if (diffHours < task.cooldownHours) {
           return NextResponse.json(
@@ -73,7 +85,7 @@ export async function POST(req: Request) {
     // ****** 3) حساب الأرباح حسب الإيداع ********
     let depositBonus = 0;
 
-    // فلنفترض أن user.balance هو مجموع الإيداعات
+    // نفترض أن user.balance هو مجموع الإيداعات
     if (user.balance >= 100 && user.balance < 500) depositBonus = 0.5;
     if (user.balance >= 500 && user.balance < 1000) depositBonus = 1.0;
     if (user.balance >= 1000) depositBonus = 2.0;
@@ -104,13 +116,16 @@ export async function POST(req: Request) {
       update: { balance: { increment: finalReward } },
     });
 
-    // ****** 7) تسجيل المهمة ********
+    // ****** 7) تسجيل المهمة في TaskLog ********
     await prisma.taskLog.create({
       data: {
         userId,
-        taskKey,
-        rewardUSD: finalReward,
-        xpGain: task.rewardXP,
+        // نخزن المفتاح في taskName عشان نقدر نتحقق منه لاحقاً
+        taskName: taskKey,
+        // الحقل الصحيح في الموديل reward
+        reward: finalReward,
+        // نخزن التاريخ الحالي في date
+        date: now,
       },
     });
 
