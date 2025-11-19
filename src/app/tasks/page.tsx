@@ -1,479 +1,353 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-
-type TaskKey =
-  | "visit_home"
-  | "check_wallet"
-  | "open_levels"
-  | "daily_reward"
-  | "watch_ad"
-  | "lucky_spin"
-  | "daily_game_easy"
-  | "daily_game_pro"
-  | "invite_friend";
-
-type TaskCategory = "daily" | "lucky" | "games" | "referral";
-
-type Task = {
-  key: TaskKey;
-  title: string;
-  desc: string;
-  icon: string;
-  category: TaskCategory;
-  rewardLabel: string;
-};
-
-type UiTask = Task & {
-  done: boolean;
-  loading: boolean;
-  lastReward?: number;
-};
-
-const USER_ID = "nu1";
-
-const TASKS: Task[] = [
-  // اليومية
-  {
-    key: "visit_home",
-    title: "زيارة لوحة BİPCOIN",
-    desc: "تفقّد لوحة المستثمر وشاهد آخر تحديثات رصيدك.",
-    icon: "🏠",
-    category: "daily",
-    rewardLabel: "+1.50$ · +15 XP",
-  },
-  {
-    key: "check_wallet",
-    title: "مراجعة المحفظة",
-    desc: "اطّلع على أرباحك وحركات الإيداع والسحب.",
-    icon: "💼",
-    category: "daily",
-    rewardLabel: "+1.50$ · +15 XP",
-  },
-  {
-    key: "open_levels",
-    title: "فتح صفحة المستويات",
-    desc: "شاهد رتبتك بين مستثمري BİPCOIN.",
-    icon: "📊",
-    category: "daily",
-    rewardLabel: "+1.50$ · +15 XP",
-  },
-  {
-    key: "daily_reward",
-    title: "الهدية اليومية",
-    desc: "تحصيل البونص اليومي لمستثمري الـ VIP.",
-    icon: "🎁",
-    category: "daily",
-    rewardLabel: "+1.50$ · +15 XP",
-  },
-  {
-    key: "watch_ad",
-    title: "مشاهدة إعلان VIP",
-    desc: "شاهد إعلانًا قصيرًا واحصل على مكافأة إضافية.",
-    icon: "📺",
-    category: "daily",
-    rewardLabel: "+0.50$ · +5 XP",
-  },
-
-  // ضربة الحظ
-  {
-    key: "lucky_spin",
-    title: "ضربة حظ ذهبية",
-    desc: "كل 3 أيام فرصة لربح 2$ – 20$ دفعة واحدة.",
-    icon: "🎡",
-    category: "lucky",
-    rewardLabel: "2$ – 20$ · +25 XP",
-  },
-
-  // الألعاب
-  {
-    key: "daily_game_easy",
-    title: "لعبة يومية (عادي)",
-    desc: "أرباح ثابتة تزيد مع رأس المال.",
-    icon: "🎮",
-    category: "games",
-    rewardLabel: "أرباح حسب رأس المال",
-  },
-  {
-    key: "daily_game_pro",
-    title: "لعبة يومية (مستثمر VIP)",
-    desc: "أرباح أعلى لأصحاب المحافظ الكبيرة.",
-    icon: "🔥",
-    category: "games",
-    rewardLabel: "أرباح عالية حسب رأس المال",
-  },
-
-  // الإحالات
-  {
-    key: "invite_friend",
-    title: "دعوة مستثمر جديد",
-    desc: "اربح 5$ عن كل صديق ينضم ويفعّل حسابه.",
-    icon: "👥",
-    category: "referral",
-    rewardLabel: "5$ لكل صديق",
-  },
-];
+import Link from "next/link";
 
 export default function TasksPage() {
-  const router = useRouter();
-
-  const [tasks, setTasks] = useState<UiTask[]>(
-    TASKS.map((t) => ({ ...t, done: false, loading: false }))
-  );
-  const [banner, setBanner] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const [showAdModal, setShowAdModal] = useState(false);
-  const [adStep, setAdStep] = useState<1 | 2>(1);
-  const [adTaskKey, setAdTaskKey] = useState<TaskKey | null>(null);
-
-  const [showLuckyModal, setShowLuckyModal] = useState(false);
-  const [luckyTaskKey, setLuckyTaskKey] = useState<TaskKey | null>(null);
-
-  function showMessage(msg: string) {
-    setBanner(msg);
-    setTimeout(() => setBanner(null), 4000);
-  }
-
-  function showError(msg: string) {
-    setError(msg);
-    setTimeout(() => setError(null), 4000);
-  }
-
-  async function completeTask(key: TaskKey) {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.key === key ? { ...t, loading: true } : t
-      )
-    );
-    setError(null);
-
-    try {
-      const res = await fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: USER_ID, taskKey: key }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        if (data?.message === "limit_reached") {
-          showError("لقد أكملت هذه المهمة الحد المسموح به لليوم.");
-        } else if (data?.message === "cooldown") {
-          const wait = Math.ceil(data.waitHours);
-          showError(`انتظر حوالي ${wait} ساعة قبل إعادة تنفيذ هذه المهمة.`);
-        } else if (data?.error === "user_not_found") {
-          showError("المستخدم غير موجود.");
-        } else {
-          showError("تعذر تنفيذ المهمة حالياً.");
-        }
-        return;
-      }
-
-      const reward = data.rewardUSD as number | undefined;
-      const xp = data.rewardXP as number | undefined;
-      const level = data.level as number | undefined;
-
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.key === key
-            ? { ...t, done: true, loading: false, lastReward: reward }
-            : t
-        )
-      );
-
-      const parts: string[] = [];
-      if (typeof reward === "number") parts.push(`+$${reward.toFixed(2)}`);
-      if (xp) parts.push(`+${xp} XP`);
-      if (level) parts.push(`المستوى: ${level}`);
-      showMessage(
-        parts.length ? `تمت المهمة بنجاح! ${parts.join(" · ")}` : "تمت المهمة!"
-      );
-    } catch (e) {
-      console.error(e);
-      showError("خطأ في الاتصال بالخادم.");
-    } finally {
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.key === key ? { ...t, loading: false } : t
-        )
-      );
-    }
-  }
-
-  function handleTaskClick(key: TaskKey) {
-    if (key === "watch_ad") {
-      setAdTaskKey(key);
-      setAdStep(1);
-      setShowAdModal(true);
-      return;
-    }
-
-    if (key === "lucky_spin") {
-      setLuckyTaskKey(key);
-      setShowLuckyModal(true);
-      return;
-    }
-
-    if (key === "daily_game_easy") {
-      router.push("/games?mode=easy");
-      return;
-    }
-
-    if (key === "daily_game_pro") {
-      router.push("/games?mode=pro");
-      return;
-    }
-
-    completeTask(key);
-  }
-
-  function closeAdModal() {
-    setShowAdModal(false);
-    setAdStep(1);
-    setAdTaskKey(null);
-  }
-
-  async function finishAd() {
-    if (!adTaskKey) return;
-    await completeTask(adTaskKey);
-    closeAdModal();
-  }
-
-  function closeLuckyModal() {
-    setShowLuckyModal(false);
-    setLuckyTaskKey(null);
-  }
-
-  async function runLuckySpin() {
-    if (!luckyTaskKey) return;
-    await completeTask(luckyTaskKey);
-    closeLuckyModal();
-  }
-
-  const daily = tasks.filter((t) => t.category === "daily");
-  const lucky = tasks.filter((t) => t.category === "lucky");
-  const games = tasks.filter((t) => t.category === "games");
-  const referral = tasks.filter((t) => t.category === "referral");
-
-  function renderCard(task: UiTask) {
-    return (
-      <button
-        key={task.key}
-        onClick={() => handleTaskClick(task.key)}
-        disabled={task.loading || task.done}
-        className={`group relative flex flex-col items-start rounded-2xl border px-4 py-4 text-right transition shadow-sm
-          ${
-            task.done
-              ? "border-emerald-400/60 bg-emerald-500/10"
-              : "border-yellow-500/20 bg-black/60 hover:shadow-[0_0_25px_rgba(250,204,21,0.25)] hover:border-yellow-400/60"
-          }`}
-      >
-        <div className="flex items-center gap-3 w-full">
-          <div className="w-10 h-10 rounded-2xl grid place-items-center bg-yellow-500/15 border border-yellow-500/40 text-xl text-yellow-300">
-            {task.icon}
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="font-semibold text-yellow-50">
-                {task.title}
-              </h2>
-              {task.done && (
-                <span className="text-[10px] rounded-full bg-emerald-500/20 text-emerald-300 px-2 py-0.5 border border-emerald-400/60">
-                  منجزة
-                </span>
-              )}
-            </div>
-            <p className="mt-1 text-xs text-yellow-100/70">
-              {task.desc}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-3 flex items-center justify-between w-full text-[11px]">
-          <span className="text-yellow-300 font-medium">
-            {task.rewardLabel}
-          </span>
-          <span className="text-yellow-100/70">
-            {task.loading
-              ? "جارٍ التنفيذ..."
-              : task.done
-              ? task.lastReward
-                ? `ربحت ${task.lastReward.toFixed(2)}$`
-                : "تمت ✓"
-              : "ابدأ"}
-          </span>
-        </div>
-      </button>
-    );
-  }
-
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-gradient-to-b from-black/80 via-black to-black/90">
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-        <header className="space-y-2">
-          <h1 className="text-2xl md:text-3xl font-bold text-yellow-50">
-            مهام BİPCOIN اليومية
-          </h1>
-          <p className="text-sm text-yellow-100/70 max-w-2xl">
-            نفّذ المهام البسيطة، جرّب ضربة الحظ والألعاب اليومية، واستخدم دعوة
-            الأصدقاء لتحويل وقتك داخل المنصّة إلى أرباح ذهبية حقيقية.
+    <div className="min-h-screen bg-black text-yellow-100 px-4 py-6 md:py-10">
+      <div className="mx-auto max-w-6xl space-y-8">
+        {/* شريط علوي صغير */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-yellow-500/80">
+              BİPCOIN • VIP Investor
+            </p>
+            <h1 className="text-2xl md:text-3xl font-bold mt-1">
+              مهام BİPCOIN اليومية
+            </h1>
+          </div>
+          <div className="flex flex-wrap gap-2 text-[11px]">
+            <Link
+              href="/"
+              className="rounded-full border border-yellow-500/40 px-3 py-1 hover:bg-yellow-500/10 transition"
+            >
+              ← العودة للرئيسية
+            </Link>
+            <Link
+              href="/stats"
+              className="rounded-full border border-yellow-500/40 px-3 py-1 hover:bg-yellow-500/10 transition"
+            >
+              عرض الإحصائيات الذهبية
+            </Link>
+          </div>
+        </div>
+
+        {/* وصف عام طويل */}
+        <section className="space-y-3 text-sm leading-relaxed text-gray-200">
+          <p>
+            في نظام <span className="text-yellow-400 font-semibold">BİPCOIN</span>{" "}
+            نعتمد على مبدأ بسيط:{" "}
+            <span className="text-yellow-300">استثمار + التزام يومي = نمو متدرّج في رأس المال</span>. 
+            تم تصميم المهام اليومية لتناسب المستثمر المشغول الذي يريد نظاماً واضحاً، 
+            لا يعتمد على الحظ فقط بل على الاستمرارية والانضباط.
           </p>
-        </header>
+          <p>
+            يمكنك تنفيذ المهام التالية مرّة واحدة يومياً، وكل مهمة تضيف إلى{" "}
+            <span className="text-yellow-300">رصيد المحفظة</span> وإلى{" "}
+            <span className="text-yellow-300">نقاط الخبرة XP</span> التي ترفع مستوى حسابك 
+            وتفتح لك مزايا إضافية مثل مضاعفات أرباح الألعاب، ضربة حظ أعلى، 
+            وحد أكبر للسحب اليومي.
+          </p>
+          <p className="text-xs text-gray-500">
+            * جميع الأرقام الظاهرة هنا تجريبية ويمكن ربطها لاحقاً بقاعدة البيانات الحقيقية 
+            للمستثمرين والمحفظة، دون تغيير تصميم الصفحات.
+          </p>
+        </section>
 
-        {banner && (
-          <div className="rounded-2xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-            {banner}
-          </div>
-        )}
-        {error && (
-          <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-            {error}
-          </div>
-        )}
-
-        {/* اليومية */}
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-yellow-200">
-            المهام اليومية
+        {/* مجموعة البطاقات الرئيسية (المهام الأساسية) */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-yellow-200">
+            المهام اليومية الأساسية
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
-            {daily.map(renderCard)}
+            <TaskCard
+              title="مراجعة المحفظة"
+              subtitle="تحليل حركة الإيداع والسحب خلال آخر 24 ساعة."
+              desc={[
+                "افتح صفحة المحفظة واطّلع على كل العمليات التي تمت اليوم.",
+                "تحقق من توافق الرصيد الحالي مع حركات الإيداع والسحب.",
+                "دوّن ملاحظاتك إن وجدت خللاً أو مبلغاً غير مفهوم.",
+              ]}
+              reward="$1.50 + 15 XP"
+              badge="استقرار مالي"
+              suggestedTime="مدة التنفيذ: 1–2 دقيقة"
+            />
+
+            <TaskCard
+              title="زيارة لوحة المستثمر BİPCOIN"
+              subtitle="متابعة حالة الخطط الاستثمارية والمشاريع."
+              desc={[
+                "استعرض ملخص أرباحك اليومية والأسبوعية.",
+                "شاهد أكثر لعبة أو مهمة حققت لك أرباحاً خلال الأسبوع.",
+                "قرر إذا كنت تحتاج لزيادة رأس المال في خطة معينة.",
+              ]}
+              reward="$1.50 + 15 XP"
+              badge="إدارة رأس المال"
+              suggestedTime="مدة التنفيذ: 2–3 دقائق"
+            />
+
+            <TaskCard
+              title="فتح صفحة المستويات VIP Levels"
+              subtitle="فهم تأثير المستوى الحالي على أرباحك."
+              desc={[
+                "اعرف المستوى الحالي لحسابك ونقاط XP المتبقية للترقية.",
+                "اقرأ المزايا المرتبطة بكل مستوى: نسبة أرباح أعلى، سقف سحوبات أكبر، ضربة حظ أكبر.",
+                "ضع هدفاً بسيطاً لنفسك للوصول للمستوى التالي خلال أسبوع.",
+              ]}
+              reward="$1.50 + 15 XP"
+              badge="ترقية حساب"
+              suggestedTime="مدة التنفيذ: 3 دقائق"
+            />
+
+            <TaskCard
+              title="تحصيل الهدية اليومية VIP"
+              subtitle="Bonus يومي بسيط يثبت نشاط حسابك."
+              desc={[
+                "ادخل إلى صفحة البونص اليومي واضغط على زر التحصيل.",
+                "تأكد من إضافة المبلغ إلى رصيد المحفظة بشكل صحيح.",
+                "هذه المهمة مهمة للحفاظ على حالة الحساب نشطاً داخل النظام.",
+              ]}
+              reward="$1.50 + 15 XP"
+              badge="نشاط يومي"
+              suggestedTime="مدة التنفيذ: 30 ثانية"
+            />
           </div>
         </section>
 
-        {/* ضربة الحظ */}
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-yellow-200">
-            ضربة الحظ الذهبية
-          </h2>
+        {/* قسم الألعاب اليومية داخل صفحة المهام */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold text-yellow-200">
+              الألعاب اليومية للمستثمرين
+            </h2>
+            <Link
+              href="/games"
+              className="text-xs text-yellow-300 hover:underline underline-offset-2"
+            >
+              الذهاب لصفحة الألعاب الكاملة →
+            </Link>
+          </div>
+
           <div className="grid gap-4 md:grid-cols-2">
-            {lucky.map(renderCard)}
+            <GameTaskCard
+              title="لعبة رد الفعل VIP"
+              desc="اضغط في اللحظة المناسبة لتحصل على أرباح حسب سرعة رد فعلك. يمكن ربط الربح بنسبة من رأس المال."
+              details={[
+                "كل محاولة مسموحة مرة واحدة في اليوم.",
+                "يمكن ضبط الربح من 0.3% حتى 1% من رأس المال حسب نتيجتك.",
+                "نتائج اللعبة يمكن جمعها في صفحة إحصائيات خاصة.",
+              ]}
+              reward="أرباح متغيرة حسب رأس المال + XP 20"
+              difficulty="المستوى: متوسط"
+            />
+
+            <GameTaskCard
+              title="لعبة ضربة حظ كل 3 أيام"
+              desc="لعبة بسيطة تمنحك مبلغاً عشوائياً بين 2$ و 20$ للمستثمرين النشطين فقط."
+              details={[
+                "لا يمكن لعبها إلا إذا أنجزت على الأقل مهمتين خلال آخر 3 أيام.",
+                "المكافأة تذهب مباشرة إلى المحفظة.",
+                "يمكن عرض سجل ضربات الحظ في صفحة الإحصائيات.",
+              ]}
+              reward="2$ – 20$ كل 3 أيام"
+              difficulty="المستوى: سهل"
+            />
           </div>
         </section>
 
-        {/* الألعاب */}
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-yellow-200">
-            الألعاب اليومية للمستثمرين
+        {/* قسم الإحالات */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-yellow-200">
+            مهمة الإحالات – أرباح من دعوة الأصدقاء
           </h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {games.map(renderCard)}
+
+          <div className="rounded-3xl border border-yellow-500/40 bg-black/70 p-5 md:p-6 shadow-[0_0_35px_rgba(250,204,21,0.18)] space-y-4">
+            <p className="text-sm text-gray-200 leading-relaxed">
+              يعتبر نظام الإحالات في{" "}
+              <span className="text-yellow-300 font-semibold">BİPCOIN</span>{" "}
+              واحداً من أهم عناصر النمو التراكمي. كل مستثمر يمكنه دعوة أصدقائه 
+              أو متابعيه للانضمام إلى المنصة والاستفادة من نفس نظام المهام والألعاب اليومية، 
+              وفي المقابل يحصل الداعي على مكافأة ثابتة لكل حساب يتم تفعيله واستثماره.
+            </p>
+
+            <div className="grid gap-4 md:grid-cols-3 text-xs md:text-sm">
+              <div className="space-y-2">
+                <p className="font-semibold text-yellow-200">مكافأة الإحالة</p>
+                <p className="text-gray-300">
+                  5$ عن كل صديق يقوم بإيداع أولي وتفعيل حسابه الاستثماري. يمكن 
+                  تغيير القيمة لاحقاً من لوحة التحكم الخاصة بالإدارة.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <p className="font-semibold text-yellow-200">حدود يومية</p>
+                <p className="text-gray-300">
+                  يمكن وضع حد أقصى لعدد الإحالات المحتسبة يومياً أو شهرياً، 
+                  لضبط النمو ومنع إساءة الاستخدام.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <p className="font-semibold text-yellow-200">دمج مع الإحصائيات</p>
+                <p className="text-gray-300">
+                  تظهر عدد الإحالات النشطة، إجمالي المكافآت المدفوعة من الإحالات، 
+                  ونسبة النمو الناتجة عنها في صفحة{" "}
+                  <span className="text-yellow-300">/stats</span>.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 text-xs">
+              <button
+                className="
+                  bg-transparent
+                  border border-yellow-500
+                  text-yellow-500
+                  font-semibold
+                  rounded-xl
+                  px-4 py-2
+                  hover:bg-yellow-500
+                  hover:text-black
+                  transition-all
+                  duration-200
+                "
+              >
+                نسخ رابط الدعوة
+              </button>
+              <span className="text-gray-400">
+                مثال لرابط إحالة: bipcoin.vip/invite/USERID
+              </span>
+            </div>
           </div>
         </section>
 
-        {/* الإحالات */}
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-yellow-200">
-            برنامج الإحالات
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {referral.map(renderCard)}
-          </div>
+        {/* ملاحظة ختامية */}
+        <section className="rounded-3xl border border-yellow-500/20 bg-black/80 p-4 text-[11px] leading-relaxed text-gray-400">
+          <p>
+            * كل مهمة من المهام أعلاه يمكن ربطها مباشرة بنظام لوق في قاعدة البيانات 
+            لاحتساب عدد مرات التنفيذ اليومي، قيمة الأرباح المضافة، وتاريخ آخر تنفيذ. 
+            تم تصميم هذه الصفحة لتكون جاهزة تقنياً لتوصيلها بـ APIs 
+            دون الحاجة لإعادة تصميم الواجهة.
+          </p>
         </section>
+      </div>
+    </div>
+  );
+}
 
-        <p className="text-[11px] text-yellow-100/60 mt-4">
-          * كل مهمة يمكن تنفيذها حسب حدود اليوم والكول داون المحدد في نظام
-          BİPCOIN، ويتم احتساب المكافآت بالدولار الأمريكي داخل محفظتك.
-        </p>
+/* مكوّن بطاقة مهمة أساسية */
+type TaskCardProps = {
+  title: string;
+  subtitle: string;
+  desc: string[];
+  reward: string;
+  badge: string;
+  suggestedTime: string;
+};
+
+function TaskCard({
+  title,
+  subtitle,
+  desc,
+  reward,
+  badge,
+  suggestedTime,
+}: TaskCardProps) {
+  return (
+    <div className="rounded-3xl border border-yellow-500/35 bg-black/70 p-5 md:p-6 shadow-[0_0_25px_rgba(250,204,21,0.14)] space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-base md:text-lg font-semibold text-yellow-100">
+            {title}
+          </h3>
+          <p className="text-xs md:text-sm text-gray-300 mt-1">{subtitle}</p>
+        </div>
+        <span className="rounded-full border border-yellow-500/60 px-3 py-1 text-[10px] text-yellow-300">
+          {badge}
+        </span>
       </div>
 
-      {/* مودال الإعلان */}
-      {showAdModal && (
-        <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4">
-          <div className="w-full max-w-md rounded-2xl bg-black border border-yellow-500/40 shadow-[0_0_40px_rgba(250,204,21,0.35)] p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-yellow-50">
-                مشاهدة إعلان VIP
-              </h2>
-              <button
-                onClick={closeAdModal}
-                className="text-sm text-yellow-200/70 hover:text-yellow-300"
-              >
-                إغلاق
-              </button>
-            </div>
+      <ul className="list-disc list-inside space-y-1 text-xs md:text-sm text-gray-200">
+        {desc.map((line, i) => (
+          <li key={i}>{line}</li>
+        ))}
+      </ul>
 
-            {adStep === 1 && (
-              <>
-                <p className="text-sm text-yellow-100/80">
-                  شاهد إعلانًا قصيرًا لمدة 30 ثانية لتحصل على{" "}
-                  <span className="font-semibold text-yellow-300">+0.50$</span> و{" "}
-                  <span className="font-semibold text-yellow-300">+5 XP</span> في محفظة
-                  BİPCOIN الخاصة بك.
-                </p>
-                <div className="mt-3 rounded-2xl bg-gradient-to-br from-yellow-500/10 via-black to-yellow-900/20 border border-yellow-500/40 h-40 grid place-items-center text-sm text-yellow-200/80">
-                  منطقة عرض الإعلان (Placeholder)
-                </div>
-                <button
-                  onClick={() => setAdStep(2)}
-                  className="w-full mt-4 rounded-xl bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-sm font-semibold py-2.5"
-                >
-                  بدء مشاهدة الإعلان
-                </button>
-              </>
-            )}
-
-            {adStep === 2 && (
-              <>
-                <p className="text-sm text-yellow-100/80">
-                  تم افتراض عرض الإعلان… اضغط على الزر بالأسفل لتحصيل مكافأتك.
-                </p>
-                <div className="mt-3 rounded-2xl bg-yellow-500/10 border border-yellow-500/60 h-32 grid place-items-center text-sm text-yellow-200/90">
-                  ⏱️ تم إكمال مدة الإعلان الوهمية
-                </div>
-                <button
-                  onClick={finishAd}
-                  className="w-full mt-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-semibold py-2.5"
-                >
-                  إنهاء الإعلان وتحصيل المكافأة
-                </button>
-              </>
-            )}
-          </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs md:text-sm">
+        <button
+          className="
+            bg-transparent
+            border border-yellow-500
+            text-yellow-500
+            font-semibold
+            rounded-xl
+            px-4 py-2
+            hover:bg-yellow-500
+            hover:text-black
+            transition-all
+            duration-200
+          "
+        >
+          تنفيذ المهمة الآن
+        </button>
+        <div className="text-right">
+          <p className="text-yellow-300 font-semibold">{reward}</p>
+          <p className="text-[10px] text-gray-400 mt-1">{suggestedTime}</p>
         </div>
-      )}
+      </div>
+    </div>
+  );
+}
 
-      {/* مودال ضربة الحظ */}
-      {showLuckyModal && (
-        <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4">
-          <div className="w-full max-w-md rounded-2xl bg-black border border-yellow-500/50 shadow-[0_0_45px_rgba(250,204,21,0.4)] p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-yellow-50">
-                ضربة حظ BİPCOIN الذهبية
-              </h2>
-              <button
-                onClick={closeLuckyModal}
-                className="text-sm text-yellow-200/70 hover:text-yellow-300"
-              >
-                إغلاق
-              </button>
-            </div>
+/* بطاقة خاصة للألعاب */
+type GameTaskCardProps = {
+  title: string;
+  desc: string;
+  details: string[];
+  reward: string;
+  difficulty: string;
+};
 
-            <p className="text-sm text-yellow-100/80">
-              لديك فرصة كل{" "}
-              <span className="font-semibold text-yellow-300">3 أيام</span> لربح
-              مبلغ عشوائي بين{" "}
-              <span className="font-semibold text-yellow-300">2$</span> و{" "}
-              <span className="font-semibold text-yellow-300">20$</span> بالإضافة
-              إلى XP إضافي.
-            </p>
-
-            <div className="mt-3 rounded-2xl bg-gradient-to-br from-yellow-500/10 via-black to-yellow-900/20 border border-yellow-500/50 h-40 grid place-items-center text-sm text-yellow-200/90">
-              مكان عجلة الحظ / الأنيميشن (Placeholder)
-            </div>
-
-            <button
-              onClick={runLuckySpin}
-              className="w-full mt-4 rounded-xl bg-gradient-to-r from-yellow-400 via-yellow-500 to-amber-500 text-black text-sm font-semibold py-2.5"
-            >
-              بدء ضربة الحظ الآن
-            </button>
-          </div>
-        </div>
-      )}
+function GameTaskCard({
+  title,
+  desc,
+  details,
+  reward,
+  difficulty,
+}: GameTaskCardProps) {
+  return (
+    <div className="rounded-3xl border border-yellow-500/35 bg-gradient-to-br from-yellow-500/5 via-black to-black p-5 md:p-6 shadow-[0_0_30px_rgba(250,204,21,0.16)] space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-base md:text-lg font-semibold text-yellow-100">
+          {title}
+        </h3>
+        <span className="rounded-full border border-yellow-500/60 px-3 py-1 text-[10px] text-yellow-300">
+          {difficulty}
+        </span>
+      </div>
+      <p className="text-xs md:text-sm text-gray-200">{desc}</p>
+      <ul className="list-disc list-inside space-y-1 text-xs md:text-sm text-gray-200">
+        {details.map((line, i) => (
+          <li key={i}>{line}</li>
+        ))}
+      </ul>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs md:text-sm">
+        <button
+          className="
+            bg-transparent
+            border border-yellow-500
+            text-yellow-500
+            font-semibold
+            rounded-xl
+            px-4 py-2
+            hover:bg-yellow-500
+            hover:text-black
+            transition-all
+            duration-200
+          "
+        >
+          ابدأ اللعب الآن
+        </button>
+        <p className="text-yellow-300 font-semibold">{reward}</p>
+      </div>
     </div>
   );
 }
