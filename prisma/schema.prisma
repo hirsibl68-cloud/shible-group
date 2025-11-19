@@ -1,172 +1,86 @@
-generator client {
-  provider = "prisma-client-js"
-}
+// =====================================================
+//  Prisma Schema for BiPCOIN Platform  (SQLite Version)
+// =====================================================
 
+// ----------------------------
+//   Data Source (SQLite)
+// ----------------------------
 datasource db {
   provider = "sqlite"
   url      = "file:./dev.db"
 }
 
-//
-// =====================
-//       USER
-// =====================
-//
-model User {
-  id        String   @id @default(uuid())
-  name      String
-  code      String
-  phone     String   @unique
-  email     String?
-  password  String
-  myCode    String   @unique
-  refCode   String?              // الكود الذي دعا المستخدم (الإحالة)
-  balance   Float    @default(0)
-  createdAt DateTime @default(now())
+// ----------------------------
+//   Generator
+// ----------------------------
+generator client {
+  provider = "prisma-client-js"
+}
 
-  xp        Int      @default(0)
-  level     Int      @default(1)
+// ----------------------------
+//   User Model
+// ----------------------------
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String
+  name      String
+  country   String?
 
   // العلاقات
-  wallet       Wallet?
-  tasksLog     TaskLog[]
-  rewards      DailyReward[]
-  withdrawals  Withdraw[]
-  luckyStrikes LuckyStrike[]
-  dailyGifts   DailyGift[]
-  gamePlays    GamePlay[]
+  wallet    Wallet?
+  deposits  Deposit[]
+  withdraws Withdraw[]
+  tasks     Task[]
+
+  createdAt DateTime  @default(now())
 }
 
-//
-// =====================
-//       WALLET
-// =====================
-//
+// ----------------------------
+//   Wallet Model
+// ----------------------------
 model Wallet {
-  id        String   @id @default(uuid())
-  userId    String   @unique
+  id        String   @id @default(cuid())
   balance   Float    @default(0)
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+
   createdAt DateTime @default(now())
-
-  user      User     @relation(fields: [userId], references: [id])
 }
 
-//
-// =====================
-//      TASK LOG
-//      سجل المهام
-// =====================
-//
-model TaskLog {
-  id        String   @id @default(uuid())
+// ----------------------------
+//   Deposit Model
+// ----------------------------
+model Deposit {
+  id        String   @id @default(cuid())
+  amount    Float
+  method    String      // مثل USDT-TRC20 أو BTC
   userId    String
-  taskKey   String               // مفتاح المهمة (مطابق لـ Task.key)
-  rewardUSD Float    @default(0) // قيمة المكافأة بالدولار
-  xpGain    Int      @default(0) // نقاط الخبرة المكتسبة
+  user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
-
-  user      User     @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-  @@index([userId, taskKey, createdAt])
 }
 
-//
-// =====================
-//    DAILY REWARD
-//    مكافأة يومية / ستريك
-// =====================
-//
-model DailyReward {
-  id        String   @id @default(uuid())
-  userId    String
-  lastClaim DateTime?
-  streak    Int      @default(0)
-
-  user      User     @relation(fields: [userId], references: [id])
-}
-
-//
-// =====================
-//     WITHDRAW
-//     طلبات السحب
-// =====================
-//
+// ----------------------------
+//   Withdraw Model
+// ----------------------------
 model Withdraw {
-  id        String   @id @default(uuid())
-  userId    String
+  id        String   @id @default(cuid())
   amount    Float
-  status    String   @default("PENDING")
-  createdAt DateTime @default(now())
-
+  method    String
+  address   String
+  userId    String
   user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
 }
 
-//
-// =====================
-//        TASK
-//   تعريف المهام الأساسية
-// =====================
-//
+// ----------------------------
+//   Tasks Model (Daily Tasks)
+// ----------------------------
 model Task {
-  key           String  @id        // مفتاح المهمة الفريد (login_daily, watch_video, lucky_box ...)
-  title         String             // عنوان المهمة
-  icon          String?            // أيقونة اختيارية
-  rewardBase    Float   @default(0) // مكافأة أساسية بالدولار
-  rewardXP      Int     @default(0) // مكافأة XP
-  limitPerDay   Int     @default(1) // الحد اليومي للتنفيذ
-  cooldownHours Int     @default(0) // فترة التبريد بين محاولتين (بالساعات)
-}
-
-//
-// =====================
-//    LUCKY STRIKE
-//    ضربة الحظ كل 3 أيام
-// =====================
-//
-model LuckyStrike {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
+  type      String
+  reward    Float
   userId    String
-  amount    Float
-  createdAt DateTime @default(now())
-
   user      User     @relation(fields: [userId], references: [id])
-
-  @@index([userId, createdAt])
-}
-
-//
-// =====================
-//     DAILY GIFT
-//     هدايا/جوائز يومية
-// =====================
-//
-model DailyGift {
-  id        String   @id @default(uuid())
-  userId    String
-  amount    Float
   createdAt DateTime @default(now())
-
-  user      User     @relation(fields: [userId], references: [id])
-
-  @@index([userId, createdAt])
-}
-
-//
-// =====================
-//      GAME PLAY
-//      سجلات الألعاب المصغّرة
-// =====================
-//
-model GamePlay {
-  id        String   @id @default(uuid())
-  userId    String
-  gameKey   String               // مفتاح اللعبة (scratch_card, wheel_spin, box_open ...)
-  amount    Float    @default(0) // الربح أو الخسارة في اللعبة (موجب/سالب أو صفر)
-  outcome   String?              // وصف مختصر (win, lose, jackpot...)
-  createdAt DateTime @default(now())
-
-  user      User     @relation(fields: [userId], references: [id])
-
-  @@index([userId, gameKey, createdAt])
 }
