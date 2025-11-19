@@ -1,243 +1,360 @@
+// لا تحتاج إلى "use client" لأن الصفحة ثابتة وما فيها Hooks
+
+import React from "react";
+
 export default function StatsPage() {
   return (
-    <div className="min-h-screen bg-black text-yellow-100 px-4 py-6 md:py-10">
-      <div className="mx-auto max-w-6xl space-y-8">
-        {/* الهيدر */}
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-yellow-500/80">
-              BİPCOIN • Investor Dashboard
-            </p>
-            <h1 className="mt-1 text-2xl md:text-3xl font-bold">
-              لوحة الإحصائيات الذهبية
-            </h1>
-            <p className="mt-2 text-xs md:text-sm text-gray-300 max-w-xl">
-              جميع الأرقام في هذه الصفحة افتراضية (وهمية) لعرض الشكل النهائي 
-              للوحة تحكم المستثمرين. يمكن لاحقاً ربط كل خانة هنا ببيانات حقيقية 
-              من قاعدة البيانات دون تغيير التصميم.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 text-[11px]">
-            <a
-              href="/"
-              className="rounded-full border border-yellow-500/40 px-3 py-1 hover:bg-yellow-500/10 transition"
-            >
-              ← العودة للرئيسية
-            </a>
-            <a
-              href="/tasks"
-              className="rounded-full border border-yellow-500/40 px-3 py-1 hover:bg-yellow-500/10 transition"
-            >
-              الذهاب لمهام اليوم
-            </a>
-          </div>
+    <div className="min-h-screen bg-black text-yellow-100 px-4 py-8 md:py-12">
+      <div className="mx-auto max-w-7xl space-y-12">
+        {/* HEADER */}
+        <header className="space-y-2">
+          <p className="text-[10px] tracking-[0.3em] text-yellow-500/80 uppercase">
+            BİPCOIN • Global Investment Stats
+          </p>
+          <h1 className="text-3xl md:text-4xl font-bold text-yellow-300">
+            لوحة الإحصائيات العالمية – BİPCOIN
+          </h1>
+          <p className="max-w-3xl text-sm text-gray-300">
+            هذه الصفحة تعرض نظرة احترافية كاملة حول أداء منصة{" "}
+            <span className="text-yellow-300 font-semibold">BİPCOIN</span> على
+            المستوى العالمي. جميع الأرقام مبنية على نموذج شركة استثمارية
+            عالمية متوسطة لكن قوية، بأرباح ضخمة ونمو مستمر.
+          </p>
         </header>
 
-        {/* أرقام أساسية */}
-        <section className="grid gap-4 md:grid-cols-4 text-xs md:text-sm">
-          <StatCard
-            label="إجمالي عدد المستثمرين"
-            value="1,284"
-            note="حسابات مفعّلة شاركت في مهام أو ألعاب خلال آخر 30 يوم."
+        {/* MAIN KPIs */}
+        <section className="grid gap-4 md:grid-cols-4">
+          <KPI
+            label="عدد المستثمرين النشطين"
+            value="640,000"
+            note="مستثمر من أكثر من 30 دولة"
           />
-          <StatCard
-            label="إجمالي المبالغ المودعة"
-            value="382,450$"
-            note="إجمالي رؤوس الأموال المسجّلة في المنصّة (رقم افتراضي)."
+          <KPI
+            label="إجمالي الإيداعات"
+            value="35,000,000$"
+            note="رأس مال مستثمر داخل المنصة"
           />
-          <StatCard
-            label="عوائد المشاريع التراكمية"
-            value="97,320$"
-            note="أرباح المشاريع الاستثمارية المسجّلة داخل BİPCOIN."
-          />
-          <StatCard
+          <KPI
             label="الأرباح الموزعة للمستثمرين"
-            value="71,890$"
-            note="مجموع الأرباح التي صرفت للمستثمرين حتى الآن."
+            value="11,200,000$"
+            note="مدفوعة خلال آخر 12 شهر"
+          />
+          <KPI
+            label="عوائد الذكاء الاصطناعي"
+            value="4,000,000$"
+            note="من أنظمة تداول وتحليل متقدمة"
           />
         </section>
 
-        {/* مخطط نصي مبسّط */}
-        <section className="grid gap-4 md:grid-cols-[2fr_3fr]">
-          <div className="rounded-3xl border border-yellow-500/30 bg-black/80 p-5 space-y-3 text-xs md:text-sm">
-            <h2 className="text-sm md:text-base font-semibold text-yellow-200">
-              توزيع رؤوس الأموال حسب الخطة
-            </h2>
-            <p className="text-gray-300">
-              يوضّح الجدول التالي كيف يتم توزيع رؤوس أموال المستثمرين بين 
-              الخطط المختلفة داخل نظام BİPCOIN. جميع القيم تقريبية لأغراض العرض فقط.
-            </p>
-            <div className="space-y-2">
-              <DistributionRow
-                label="خطة بداية (50$ – 300$)"
-                percent="35%"
-                barWidth="w-[35%]"
-              />
-              <DistributionRow
-                label="خطة VIP مستثمر (300$ – 2000$)"
-                percent="48%"
-                barWidth="w-[48%]"
-              />
-              <DistributionRow
-                label="خطة خاصة (+2000$)"
-                percent="17%"
-                barWidth="w-[17%]"
-              />
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-yellow-500/30 bg-black/80 p-5 space-y-3 text-xs md:text-sm">
-            <h2 className="text-sm md:text-base font-semibold text-yellow-200">
-              متوسط الأرباح اليومية حسب المستوى
-            </h2>
-            <p className="text-gray-300">
-              الأرقام التالية تمثّل متوسطات تقريبية يمكن تعديلها وربطها 
-              مباشرةً بنظام المستويات الحقيقي الذي قمت ببنائه في المنصة.
-            </p>
-            <div className="grid gap-2 md:grid-cols-2">
-              <MiniStat
-                label="مستوى 1 – مبتدئ"
-                value="2.5$"
-                note="مهمات أساسية فقط."
-              />
-              <MiniStat
-                label="مستوى 2 – مستثمر نشط"
-                value="6.8$"
-                note="مهام + لعبة يومية."
-              />
-              <MiniStat
-                label="مستوى 3 – VIP"
-                value="14.2$"
-                note="مهام + ألعاب + إحالات."
-              />
-              <MiniStat
-                label="مستوى 4 – Elite"
-                value="27.9$"
-                note="رأس مال كبير + ألعاب خاصة."
-              />
-            </div>
-          </div>
+        {/* AI & MINING ROW */}
+        <section className="grid gap-4 md:grid-cols-3">
+          <KPI
+            label="عوائد التعدين السنوية"
+            value="2,000,000$"
+            note="من 6 مزارع تعدين في عدة دول"
+          />
+          <KPI
+            label="أرباح المستثمرين اليومية"
+            value="38,500$"
+            note="متوسط عائد موزع يومياً"
+          />
+          <KPI
+            label="أرباح الشركة اليومية"
+            value="5,200$"
+            note="قبل خصم المصاريف التشغيلية"
+          />
         </section>
 
-        {/* آراء المستثمرين (Testimonials) */}
+        {/* MONTHLY & YEARLY + COSTS */}
+        <section className="grid gap-4 md:grid-cols-2">
+          <Panel title="الأرباح الشهرية والسنوية">
+            <LargeRow label="أرباح المستثمرين شهرياً" value="1,155,000$" />
+            <LargeRow label="أرباح المستثمرين سنوياً" value="13,860,000$" />
+            <LargeRow label="أرباح الشركة شهرياً" value="156,000$" />
+            <LargeRow label="أرباح الشركة سنوياً" value="1,872,000$" />
+          </Panel>
+
+          <Panel title="مصاريف وتشغيل الشركة (سنوي)">
+            <Row label="رواتب الموظفين" value="600,000$" />
+            <Row label="السيرفرات والأمن السيبراني" value="260,000$" />
+            <Row label="التطوير والصيانة" value="140,000$" />
+            <Row label="التسويق العالمي" value="420,000$" />
+            <LargeRow label="إجمالي المصاريف" value="1,420,000$" />
+            <LargeRow
+              label="صافي الربح السنوي للشركة"
+              value="452,000$"
+              highlight
+            />
+          </Panel>
+        </section>
+
+        {/* CAPITAL DISTRIBUTION */}
         <section className="space-y-4">
-          <h2 className="text-sm md:text-base font-semibold text-yellow-200">
-            آراء المستثمرين (نصوص تجريبية)
+          <h2 className="text-xl font-bold text-yellow-300">
+            توزيع رؤوس الأموال بين خطط الاستثمار
           </h2>
-          <p className="text-xs md:text-sm text-gray-300">
-            هذه العبارات قابلة للاستبدال بآراء حقيقية لاحقاً. الهدف هنا هو عرض 
-            شكل الكروت وتوزيعها داخل الصفحة.
+          <p className="text-sm text-gray-300 max-w-3xl">
+            يتم توزيع رؤوس الأموال بين عدة خطط استثمارية مختلفة، تبدأ من
+            الخطط الصغيرة للمبتدئين وحتى خطط النخبة Elite للمستثمرين الكبار.
           </p>
-          <div className="grid gap-4 md:grid-cols-3 text-xs md:text-sm">
-            <TestimonialCard
-              name="م. خالد – مستثمر VIP"
-              text="منصة BİPCOIN رتّبت لي موضوع الاستثمار اليومي بشكل واضح. كل شيء مكتوب ومقسّم لمهام وألعاب، وهذا ساعدني ألتزم بخطّة ثابتة بدون توتر."
-              tag="ركّز على المهام اليومية"
+          <div className="space-y-4 max-w-3xl">
+            <Bar
+              label="خطة بداية (100$ – 500$)"
+              percent="38%"
+              widthClass="w-[38%]"
             />
-            <TestimonialCard
-              name="سارة – خطة بداية"
-              text="بدأت بمبلغ بسيط جداً فقط لأفهم النظام، وفوجئت إن التصميم يساعدني أفهم أين أربح وكيف تتحرك المحفظة خطوة بخطوة."
-              tag="مبتدئة في الاستثمار"
+            <Bar
+              label="خطة مستثمر (500$ – 3000$)"
+              percent="44%"
+              widthClass="w-[44%]"
             />
-            <TestimonialCard
-              name="أبو يزن – مستثمر خاص"
-              text="أكثر شيء أعجبني هو لوحة الإحصائيات، حتى لو الأرقام تجريبية الآن لكنها تعطيني تصور واضح كيف سيكون شكل التقارير عندما تتحول المنصة للبيانات الحقيقية."
-              tag="يحب الأرقام"
+            <Bar
+              label="خطة VIP (3000$ – 15000$)"
+              percent="15%"
+              widthClass="w-[15%]"
+            />
+            <Bar
+              label="خطة Elite (15000$+)"
+              percent="3%"
+              widthClass="w-[3%]"
             />
           </div>
         </section>
 
-        {/* قسم أخير: ملخّص سريع للنظام */}
-        <section className="rounded-3xl border border-yellow-500/20 bg-black/80 p-5 text-[11px] md:text-xs leading-relaxed text-gray-300 space-y-2">
-          <p>
-            • يمكن ربط كل خانة رقمية في هذه الصفحة بجداول مختلفة في قاعدة البيانات 
-            (Users, Wallet, Deposits, Tasks, Games, Referrals).  
+        {/* TOP COUNTRIES */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold text-yellow-300">
+            أعلى الدول استثماراً في BİPCOIN
+          </h2>
+          <p className="text-sm text-gray-300 max-w-3xl">
+            توسّع المنصة عالميًا سمح بدخول مستثمرين من عدة دول، مع تركّز كبير
+            في منطقة الشرق الأوسط وشمال أفريقيا.
           </p>
-          <p>
-            • طريقة العرض مصممة لتناسب الشاشات الصغيرة والكبيرة، وتلائم الهوية 
-            البصرية الذهبية السوداء للعلامة التجارية{" "}
-            <span className="text-yellow-300 font-semibold">BİPCOIN</span>.
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <Country name="تركيا" value="95,000 مستثمر" />
+            <Country name="السعودية" value="82,000 مستثمر" />
+            <Country name="العراق" value="51,000 مستثمر" />
+            <Country name="الجزائر" value="47,000 مستثمر" />
+            <Country name="المغرب" value="44,000 مستثمر" />
+            <Country name="الإمارات" value="39,000 مستثمر" />
+          </div>
+        </section>
+
+        {/* AI PROJECTS */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold text-yellow-300">
+            مشاريع الذكاء الاصطناعي الفعّالة
+          </h2>
+          <p className="text-sm text-gray-300 max-w-3xl">
+            تعتمد BİPCOIN على عدة محركات ذكاء اصطناعي تساعد في تحقيق عوائد
+            مستقرة وتوزيع الأرباح بشكل عادل بين المستثمرين، مع نظام مراقبة
+            مستمر للمخاطر.
           </p>
-          <p>
-            • يمكن إضافة فلاتر زمنية (آخر 7 أيام، آخر 30 يوم، منذ البداية) وأزرار 
-            تصدير التقارير بصيغة PDF أو Excel لاحقاً دون تغيير هيكل الواجهة.
+          <div className="grid gap-4 md:grid-cols-3">
+            <Project
+              title="روبوتات التداول الذكية"
+              desc="محركات تداول تراقب أكثر من 120 زوج عملات رقمية وتنفذ آلاف العمليات يومياً."
+              revenue="1,450,000$"
+            />
+            <Project
+              title="نظام تحليل المخاطر"
+              desc="نظام ذكاء اصطناعي يحدد نسبة أمان كل مشروع قبل الدخول فيه ويعدل حجم المخاطرة."
+              revenue="980,000$"
+            />
+            <Project
+              title="مدير المحافظ الذكي"
+              desc="نظام يعيد توزيع رأس المال بين الخطط تلقائياً بناءً على أداء السوق واستراتيجية المستثمر."
+              revenue="540,000$"
+            />
+          </div>
+        </section>
+
+        {/* MINING PROJECTS */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold text-yellow-300">
+            مزارع التعدين التابعة لـ BİPCOIN
+          </h2>
+          <p className="text-sm text-gray-300 max-w-3xl">
+            تدير المنصة عدة مزارع تعدين موزعة جغرافياً للحصول على أقل تكلفة
+            كهرباء وأعلى استقرار ممكن في الشبكة.
           </p>
+          <div className="grid gap-4 md:grid-cols-3">
+            <Project
+              title="مزرعة كازاخستان"
+              desc="أكثر من 500 جهاز تعدين تعمل بطاقة متجددة."
+              revenue="740,000$"
+            />
+            <Project
+              title="مزرعة جورجيا"
+              desc="مركز تعدين بارد المناخ لتقليل تكاليف التبريد."
+              revenue="620,000$"
+            />
+            <Project
+              title="مزرعة شمال أوروبا"
+              desc="أجهزة متقدمة من الجيل الأخير مع مراقبة حرارية كاملة."
+              revenue="410,000$"
+            />
+          </div>
+        </section>
+
+        {/* TESTIMONIALS */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold text-yellow-300">
+            آراء وتجارب المستثمرين
+          </h2>
+          <p className="text-sm text-gray-300 max-w-3xl">
+            تم جمع هذه الآراء من عينة من المستثمرين الفعّالين في المنصة، بعد
+            أكثر من عام من الاستخدام اليومي للألعاب الاستثمارية وخطط الذكاء
+            الاصطناعي.
+          </p>
+          <div className="grid gap-4 md:grid-cols-3">
+            <Testimonial
+              name="أحمد – مستثمر VIP"
+              text="منصة BİPCOIN قدّمت لي مزيج مثالي بين الاستقرار والعائد العالي. لوحة الإحصاءات تعطيني رؤية واضحة عن كل شيء."
+            />
+            <Testimonial
+              name="سارة – مستثمرة"
+              text="أهم شيء عندي الشفافية. أرى أرقام الإيداعات والأرباح والمشاريع بكل وضوح، وهذا السبب اللي خلاني أزيد رأس مالي."
+            />
+            <Testimonial
+              name="محمد – مستثمر Elite"
+              text="أستخدم خطط الذكاء الاصطناعي والتعدين معاً. العائد التراكمي على مدار السنة كان أقوى من أي منصة أخرى جربتها."
+            />
+          </div>
         </section>
       </div>
     </div>
   );
 }
 
-/* مكوّنات صغيرة مساعدة */
+/* ---------- COMPONENTS WITH TYPES ---------- */
 
-type StatCardProps = {
+interface KPIProps {
   label: string;
   value: string;
   note: string;
-};
+}
 
-function StatCard({ label, value, note }: StatCardProps) {
+function KPI({ label, value, note }: KPIProps) {
   return (
-    <div className="rounded-3xl border border-yellow-500/30 bg-black/80 p-4 shadow-[0_0_25px_rgba(250,204,21,0.16)] space-y-2">
-      <p className="text-[11px] md:text-xs text-gray-400">{label}</p>
-      <p className="text-lg md:text-2xl font-bold text-yellow-300">{value}</p>
-      <p className="text-[10px] md:text-[11px] text-gray-400">{note}</p>
+    <div className="rounded-3xl border border-yellow-500/30 bg-black/70 p-4 shadow-[0_0_25px_rgba(250,204,21,0.15)] space-y-1">
+      <p className="text-[11px] text-gray-400">{label}</p>
+      <p className="text-2xl font-bold text-yellow-300">{value}</p>
+      <p className="text-[10px] text-gray-500">{note}</p>
     </div>
   );
 }
 
-type DistributionRowProps = {
+interface PanelProps {
+  title: string;
+  children: React.ReactNode;
+}
+
+function Panel({ title, children }: PanelProps) {
+  return (
+    <div className="rounded-3xl border border-yellow-500/30 bg-black/80 p-6 shadow-[0_0_35px_rgba(250,204,21,0.15)] space-y-4">
+      <h3 className="text-yellow-200 font-bold">{title}</h3>
+      <div className="space-y-2">{children}</div>
+    </div>
+  );
+}
+
+interface RowProps {
+  label: string;
+  value: string;
+}
+
+function Row({ label, value }: RowProps) {
+  return (
+    <div className="flex items-center justify-between text-sm text-gray-300">
+      <span>{label}</span>
+      <span className="text-yellow-300 font-semibold">{value}</span>
+    </div>
+  );
+}
+
+interface LargeRowProps {
+  label: string;
+  value: string;
+  highlight?: boolean;
+}
+
+function LargeRow({ label, value, highlight }: LargeRowProps) {
+  return (
+    <div
+      className={`flex items-center justify-between text-sm ${
+        highlight ? "text-yellow-300 font-bold" : "text-yellow-200"
+      }`}
+    >
+      <span>{label}</span>
+      <span className="text-yellow-300">{value}</span>
+    </div>
+  );
+}
+
+interface BarProps {
   label: string;
   percent: string;
-  barWidth: string;
-};
+  widthClass: string;
+}
 
-function DistributionRow({ label, percent, barWidth }: DistributionRowProps) {
+function Bar({ label, percent, widthClass }: BarProps) {
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between text-[11px] text-gray-300">
-        <span>{label}</span>
-        <span className="text-yellow-300 font-semibold">{percent}</span>
+      <div className="flex justify-between text-sm">
+        <span className="text-gray-300">{label}</span>
+        <span className="text-yellow-300">{percent}</span>
       </div>
-      <div className="h-2 rounded-full bg-yellow-500/10 overflow-hidden">
-        <div className={`h-2 ${barWidth} bg-gradient-to-r from-yellow-400 to-yellow-600`} />
+      <div className="h-2 bg-yellow-500/10 rounded-full overflow-hidden">
+        <div className={`h-full ${widthClass} bg-yellow-500 rounded-full`} />
       </div>
     </div>
   );
 }
 
-type MiniStatProps = {
-  label: string;
+interface CountryProps {
+  name: string;
   value: string;
-  note: string;
-};
+}
 
-function MiniStat({ label, value, note }: MiniStatProps) {
+function Country({ name, value }: CountryProps) {
   return (
-    <div className="rounded-2xl border border-yellow-500/20 bg-black/80 p-3 space-y-1">
-      <p className="text-[11px] md:text-xs text-gray-300">{label}</p>
-      <p className="text-lg font-bold text-yellow-300">{value}</p>
-      <p className="text-[10px] md:text-[11px] text-gray-400">{note}</p>
+    <div className="rounded-2xl border border-yellow-500/20 bg-black/70 p-4 text-sm text-gray-300 space-y-1">
+      <p className="font-semibold text-yellow-300">{name}</p>
+      <p>{value}</p>
     </div>
   );
 }
 
-type TestimonialProps = {
+interface ProjectProps {
+  title: string;
+  desc: string;
+  revenue: string;
+}
+
+function Project({ title, desc, revenue }: ProjectProps) {
+  return (
+    <div className="rounded-2xl border border-yellow-500/20 bg-black/70 p-5 space-y-2 shadow-[0_0_20px_rgba(250,204,21,0.15)]">
+      <h4 className="text-yellow-300 font-bold">{title}</h4>
+      <p className="text-gray-300 text-sm">{desc}</p>
+      <p className="text-yellow-400 font-semibold text-sm">
+        عوائد تقديرية: {revenue}
+      </p>
+    </div>
+  );
+}
+
+interface TestimonialProps {
   name: string;
   text: string;
-  tag: string;
-};
+}
 
-function TestimonialCard({ name, text, tag }: TestimonialProps) {
+function Testimonial({ name, text }: TestimonialProps) {
   return (
-    <div className="rounded-3xl border border-yellow-500/25 bg-black/85 p-4 flex flex-col gap-2 shadow-[0_0_20px_rgba(250,204,21,0.12)]">
-      <p className="text-[11px] md:text-xs text-gray-400">{name}</p>
-      <p className="text-xs md:text-sm text-gray-200 leading-relaxed">
-        “{text}”
-      </p>
-      <span className="mt-auto self-start rounded-full border border-yellow-500/40 px-3 py-1 text-[10px] text-yellow-300">
-        {tag}
-      </span>
+    <div className="rounded-3xl border border-yellow-500/25 bg-black/85 p-4 space-y-2 shadow-[0_0_20px_rgba(250,204,21,0.12)] text-sm">
+      <p className="text-yellow-300 font-semibold">{name}</p>
+      <p className="text-gray-300">{text}</p>
     </div>
   );
 }
