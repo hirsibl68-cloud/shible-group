@@ -1,21 +1,31 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 type GameType = "daily_game_easy" | "daily_game_pro";
 const USER_ID = "nu1";
 
 export default function GamesPage() {
+  const searchParams = useSearchParams();
+  const initialMode = searchParams.get("mode"); // "easy" أو "pro"
+
   const [loading, setLoading] = useState<GameType | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialMode === "easy") {
+      // فقط نبرز لعبة easy مثلاً (ما في حاجة لفعل شيء إضافي الآن)
+    }
+  }, [initialMode]);
 
   function resetAlerts() {
     setMessage(null);
     setError(null);
   }
 
-  async function playGame(type: GameType) {
+  async function completeGame(type: GameType) {
     setLoading(type);
     resetAlerts();
 
@@ -40,7 +50,7 @@ export default function GamesPage() {
         return;
       }
 
-      const reward = data.rewardUSD;
+      const reward = data.rewardUSD as number;
       setMessage(`🎉 ربحت +$${reward.toFixed(2)} · +${data.rewardXP} XP`);
     } catch (e) {
       console.error(e);
@@ -55,8 +65,7 @@ export default function GamesPage() {
       <header className="space-y-2">
         <h1 className="text-3xl font-bold text-[#0b1a2e]">🎮 ألعاب Money AI</h1>
         <p className="text-gray-600 text-sm">
-          العب الألعاب اليومية واربط الأداء الخاص بك بأرباح حقيقية تُضاف إلى محفظتك
-          الاستثمارية.
+          العب الألعاب اليومية واربح مكافآت حقيقية تضاف مباشرة إلى محفظتك الاستثمارية.
         </p>
       </header>
 
@@ -65,7 +74,6 @@ export default function GamesPage() {
           {message}
         </div>
       )}
-
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
           {error}
@@ -73,60 +81,53 @@ export default function GamesPage() {
       )}
 
       <div className="grid md:grid-cols-2 gap-5">
-        {/* اللعبة السهلة: Click Game */}
-        <EasyClickGameCard
+        <EasyClickGame
           loading={loading === "daily_game_easy"}
-          onGameComplete={() => playGame("daily_game_easy")}
+          onFinish={() => completeGame("daily_game_easy")}
         />
-
-        {/* لعبة المستثمر: Reaction / Lucky Tap */}
-        <ReactionGameCard
+        <ReactionGame
           loading={loading === "daily_game_pro"}
-          onGameComplete={() => playGame("daily_game_pro")}
+          onFinish={() => completeGame("daily_game_pro")}
         />
       </div>
 
       <p className="text-[12px] text-gray-500 mt-3 text-center">
-        * يمكن لعب كل لعبة مرة واحدة يوميًا (أو حسب إعدادات المهمة في لوحة التحكم).
+        * يمكن لعب كل لعبة مرة واحدة يوميًا (أو حسب إعدادات المهمة في قاعدة البيانات).
       </p>
     </div>
   );
 }
 
 /* ===========================
-   لعبة 1: Click Game (Easy)
+   لعبة 1: Click Game (عادي)
    =========================== */
 
-type EasyClickProps = {
+type EasyProps = {
   loading: boolean;
-  onGameComplete: () => Promise<void>;
+  onFinish: () => Promise<void>;
 };
 
-function EasyClickGameCard({ loading, onGameComplete }: EasyClickProps) {
-  const [status, setStatus] = useState<"idle" | "running" | "finished">("idle");
+function EasyClickGame({ loading, onFinish }: EasyProps) {
+  const [status, setStatus] = useState<"idle" | "running" | "finished">(
+    "idle"
+  );
   const [timeLeft, setTimeLeft] = useState<number>(10);
   const [clicks, setClicks] = useState<number>(0);
   const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
-      if (timerRef.current !== null) {
-        window.clearInterval(timerRef.current);
-      }
+      if (timerRef.current !== null) window.clearInterval(timerRef.current);
     };
   }, []);
 
   function startGame() {
-    if (loading) return; // لا نبدأ لعبة جديدة أثناء حفظ المهمة
-
-    // إعادة تهيئة القيم
+    if (loading) return;
     setStatus("running");
     setTimeLeft(10);
     setClicks(0);
 
-    if (timerRef.current !== null) {
-      window.clearInterval(timerRef.current);
-    }
+    if (timerRef.current !== null) window.clearInterval(timerRef.current);
 
     const id = window.setInterval(() => {
       setTimeLeft((prev) => {
@@ -145,10 +146,10 @@ function EasyClickGameCard({ loading, onGameComplete }: EasyClickProps) {
 
   async function finishGame() {
     setStatus("finished");
-    await onGameComplete();
+    await onFinish();
   }
 
-  function handleClickArea() {
+  function handleAreaClick() {
     if (status !== "running") return;
     setClicks((c) => c + 1);
   }
@@ -158,29 +159,28 @@ function EasyClickGameCard({ loading, onGameComplete }: EasyClickProps) {
       <div className="flex items-center gap-3">
         <div className="text-3xl">🎮</div>
         <div>
-          <h3 className="text-xl font-bold text-[#0b1a2e]">
+          <h3 className="text-lg font-bold text-[#0b1a2e]">
             اللعبة اليومية – مستوى عادي
           </h3>
           <p className="text-sm text-gray-600">
-            اضغط بأقصى سرعة خلال 10 ثواني. الأداء لا يغير قيمة الربح حاليًا،
-            لكن يعطي إحساس تفاعلي للمستخدم.
+            اضغط بأقصى سرعة خلال 10 ثواني. بعد انتهاء الوقت يتم احتساب مكافأة اللعبة.
           </p>
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-xs mt-1">
-        <span className="text-gray-600">
+      <div className="flex items-center justify-between text-xs mt-1 text-gray-600">
+        <span>
           ⏱️ الوقت المتبقي:{" "}
           <span className="font-semibold text-[#0b1a2e]">{timeLeft}s</span>
         </span>
-        <span className="text-gray-600">
+        <span>
           👆 عدد النقرات:{" "}
           <span className="font-semibold text-[#0b1a2e]">{clicks}</span>
         </span>
       </div>
 
       <div
-        onClick={handleClickArea}
+        onClick={handleAreaClick}
         className={`mt-3 h-40 rounded-2xl border grid place-items-center text-sm font-semibold cursor-pointer select-none transition
           ${
             status === "running"
@@ -190,8 +190,7 @@ function EasyClickGameCard({ loading, onGameComplete }: EasyClickProps) {
       >
         {status === "idle" && "اضغط زر البدء ثم انقر هنا بأقصى سرعة!"}
         {status === "running" && "اضغط! اضغط! اضغط! 🔥"}
-        {status === "finished" &&
-          "انتهى الوقت! يمكنك البدء من جديد بعد حفظ المكافأة."}
+        {status === "finished" && "انتهى الوقت! تم حفظ مكافأتك."}
       </div>
 
       <button
@@ -220,22 +219,20 @@ function EasyClickGameCard({ loading, onGameComplete }: EasyClickProps) {
 
 type ReactionProps = {
   loading: boolean;
-  onGameComplete: () => Promise<void>;
+  onFinish: () => Promise<void>;
 };
 
-function ReactionGameCard({ loading, onGameComplete }: ReactionProps) {
+function ReactionGame({ loading, onFinish }: ReactionProps) {
   const [status, setStatus] = useState<
     "idle" | "waiting" | "ready" | "tooSoon" | "success"
   >("idle");
   const [reactionTime, setReactionTime] = useState<number | null>(null);
   const timeoutRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number | null>(null);
+  const startRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
-      if (timeoutRef.current !== null) {
-        window.clearTimeout(timeoutRef.current);
-      }
+      if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
     };
   }, []);
 
@@ -245,13 +242,11 @@ function ReactionGameCard({ loading, onGameComplete }: ReactionProps) {
     setStatus("waiting");
     setReactionTime(null);
 
-    if (timeoutRef.current !== null) {
-      window.clearTimeout(timeoutRef.current);
-    }
+    if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
 
     const delay = 1000 + Math.random() * 3000; // من 1 إلى 4 ثواني
     const id = window.setTimeout(() => {
-      startTimeRef.current = Date.now();
+      startRef.current = Date.now();
       setStatus("ready");
     }, delay);
 
@@ -261,46 +256,39 @@ function ReactionGameCard({ loading, onGameComplete }: ReactionProps) {
   async function handleTap() {
     // ضغط مبكر
     if (status === "waiting") {
-      if (timeoutRef.current !== null) {
-        window.clearTimeout(timeoutRef.current);
-      }
+      if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
       setStatus("tooSoon");
-      startTimeRef.current = null;
+      startRef.current = null;
       return;
     }
 
     // ضغط صحيح
     if (status === "ready") {
       const end = Date.now();
-      if (startTimeRef.current) {
-        const diff = end - startTimeRef.current;
+      if (startRef.current) {
+        const diff = end - startRef.current;
         setReactionTime(diff);
       }
       setStatus("success");
-      startTimeRef.current = null;
+      startRef.current = null;
 
-      // استدعاء المهمة (اللعبة للمستثمر)
-      await onGameComplete();
-      return;
+      await onFinish();
     }
-
-    // في الحالات الأخرى لا نفعل شيئًا
   }
 
-  let infoText = "";
+  let info = "";
   if (status === "idle") {
-    infoText = "اضغط زر البدء ثم انتظر حتى يتحول اللون إلى أخضر، بعدها اضغط بسرعة!";
+    info = "اضغط زر بدء التحدي، ثم انتظر حتى يتحول المربع إلى أخضر واضغط بأسرع ما يمكن.";
   } else if (status === "waiting") {
-    infoText = "انتظر... لا تضغط حتى يتحول اللون إلى أخضر 💡";
+    info = "انتظر... لا تضغط حتى يتحول اللون إلى أخضر.";
   } else if (status === "ready") {
-    infoText = "اضغط الآن بسرعة! ⚡";
+    info = "اضغط الآن بسرعة! ⚡";
   } else if (status === "tooSoon") {
-    infoText = "ضغطت مبكرًا! جرّب مرة أخرى.";
+    info = "ضغطت مبكرًا! جرّب مرة أخرى.";
   } else if (status === "success") {
-    infoText = reactionTime
-      ? `ردة فعلك: ${reactionTime}ms`
-      : "تم التسجيل!";
-
+    info = reactionTime
+      ? `ردة فعلك كانت ${reactionTime}ms`
+      : "محاولة ناجحة!";
   }
 
   return (
@@ -308,17 +296,16 @@ function ReactionGameCard({ loading, onGameComplete }: ReactionProps) {
       <div className="flex items-center gap-3">
         <div className="text-3xl">⚡</div>
         <div>
-          <h3 className="text-xl font-bold text-[#0b1a2e]">
+          <h3 className="text-lg font-bold text-[#0b1a2e]">
             لعبة المستثمر – ردة الفعل
           </h3>
           <p className="text-sm text-gray-600">
-            اختبر سرعة ردة فعلك. عند تحول المربع إلى أخضر، اضغط بأسرع ما يمكن.
-            بعد المحاولة الناجحة، يتم إضافة أرباح لعبة المستثمر إلى محفظتك.
+            اختبر سرعة ردة فعلك. عند تحوّل المربع إلى أخضر، اضغط فورًا لتحصل على مكافأة المستثمر.
           </p>
         </div>
       </div>
 
-      <p className="text-xs text-gray-600">{infoText}</p>
+      <p className="text-xs text-gray-600">{info}</p>
 
       <div
         onClick={handleTap}
@@ -335,13 +322,13 @@ function ReactionGameCard({ loading, onGameComplete }: ReactionProps) {
               : "bg-gray-100 border-gray-300 text-gray-600"
           }`}
       >
-        {status === "idle" && "منطقة التحدي ستتغير بعد الضغط على بدء التحدي."}
-        {status === "waiting" && "لا تضغط الآن! انتظر اللون الأخضر."}
+        {status === "idle" && "منطقة التحدي ستتغير بعد الضغط على زر البدء."}
+        {status === "waiting" && "انتظر اللون الأخضر… لا تضغط الآن."}
         {status === "ready" && "اضغط الآن! ⚡"}
-        {status === "tooSoon" && "ضغطت مبكرًا! اضغط بدء التحدي مرة أخرى."}
+        {status === "tooSoon" && "ضغطت مبكرًا! اضغط زر البدء مرة أخرى."}
         {status === "success" &&
           (reactionTime
-            ? `جميل! ردة فعلك كانت ${reactionTime}ms`
+            ? `ردة فعلك: ${reactionTime}ms`
             : "محاولة ناجحة!")}
       </div>
 

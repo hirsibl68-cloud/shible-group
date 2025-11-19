@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type TaskKey =
@@ -22,88 +23,7 @@ type Task = {
   icon: string;
   category: TaskCategory;
   rewardLabel: string;
-  helper?: string;
 };
-
-const USER_ID = "nu1";
-
-const TASKS: Task[] = [
-  {
-    key: "visit_home",
-    title: "زيارة الصفحة الرئيسية",
-    desc: "تفقد لوحة التحكم وتعرف على آخر التحديثات.",
-    icon: "🏠",
-    category: "daily",
-    rewardLabel: "+1.50$ · +15 XP",
-  },
-  {
-    key: "check_wallet",
-    title: "تفقد المحفظة",
-    desc: "راجع أرباحك وحركات الإيداع والسحب.",
-    icon: "💼",
-    category: "daily",
-    rewardLabel: "+1.50$ · +15 XP",
-  },
-  {
-    key: "open_levels",
-    title: "فتح صفحة المستويات",
-    desc: "شاهد تقدمك في مستويات Money AI.",
-    icon: "📊",
-    category: "daily",
-    rewardLabel: "+1.50$ · +15 XP",
-  },
-  {
-    key: "daily_reward",
-    title: "تحصيل الهدية اليومية",
-    desc: "لا تنسَ جمع هديتك المجانية اليوم.",
-    icon: "🎁",
-    category: "daily",
-    rewardLabel: "+1.50$ · +15 XP",
-  },
-  {
-    key: "watch_ad",
-    title: "مشاهدة إعلان قصير",
-    desc: "شاهد إعلان 30 ثانية لتحصل على مكافأة إضافية.",
-    icon: "📺",
-    category: "daily",
-    rewardLabel: "+0.50$ · +5 XP",
-  },
-
-  {
-    key: "lucky_spin",
-    title: "ضربة حظ كل 3 أيام",
-    desc: "اربح مبلغًا عشوائيًا بين 2$ و 20$.",
-    icon: "🎡",
-    category: "lucky",
-    rewardLabel: "2$ – 20$ · +25 XP",
-  },
-
-  {
-    key: "daily_game_easy",
-    title: "لعبة يومية (عادي)",
-    desc: "أرباح ثابتة تزيد حسب رأس المال.",
-    icon: "🎮",
-    category: "games",
-    rewardLabel: "أرباح حسب رأس المال",
-  },
-  {
-    key: "daily_game_pro",
-    title: "لعبة يومية (مستثمر)",
-    desc: "أرباح أعلى ملائمة لأصحاب رؤوس الأموال.",
-    icon: "🔥",
-    category: "games",
-    rewardLabel: "أرباح عالية حسب رأس المال",
-  },
-
-  {
-    key: "invite_friend",
-    title: "دعوة صديق",
-    desc: "اربح 5$ عند دعوة صديق يفعل حسابه.",
-    icon: "👥",
-    category: "referral",
-    rewardLabel: "5$ لكل صديق",
-  },
-];
 
 type UiTask = Task & {
   done: boolean;
@@ -111,7 +31,93 @@ type UiTask = Task & {
   lastReward?: number;
 };
 
+const USER_ID = "nu1";
+
+const TASKS: Task[] = [
+  // اليومية
+  {
+    key: "visit_home",
+    title: "زيارة لوحة BİPCOIN",
+    desc: "تفقّد لوحة المستثمر وشاهد آخر تحديثات رصيدك.",
+    icon: "🏠",
+    category: "daily",
+    rewardLabel: "+1.50$ · +15 XP",
+  },
+  {
+    key: "check_wallet",
+    title: "مراجعة المحفظة",
+    desc: "اطّلع على أرباحك وحركات الإيداع والسحب.",
+    icon: "💼",
+    category: "daily",
+    rewardLabel: "+1.50$ · +15 XP",
+  },
+  {
+    key: "open_levels",
+    title: "فتح صفحة المستويات",
+    desc: "شاهد رتبتك بين مستثمري BİPCOIN.",
+    icon: "📊",
+    category: "daily",
+    rewardLabel: "+1.50$ · +15 XP",
+  },
+  {
+    key: "daily_reward",
+    title: "الهدية اليومية",
+    desc: "تحصيل البونص اليومي لمستثمري الـ VIP.",
+    icon: "🎁",
+    category: "daily",
+    rewardLabel: "+1.50$ · +15 XP",
+  },
+  {
+    key: "watch_ad",
+    title: "مشاهدة إعلان VIP",
+    desc: "شاهد إعلانًا قصيرًا واحصل على مكافأة إضافية.",
+    icon: "📺",
+    category: "daily",
+    rewardLabel: "+0.50$ · +5 XP",
+  },
+
+  // ضربة الحظ
+  {
+    key: "lucky_spin",
+    title: "ضربة حظ ذهبية",
+    desc: "كل 3 أيام فرصة لربح 2$ – 20$ دفعة واحدة.",
+    icon: "🎡",
+    category: "lucky",
+    rewardLabel: "2$ – 20$ · +25 XP",
+  },
+
+  // الألعاب
+  {
+    key: "daily_game_easy",
+    title: "لعبة يومية (عادي)",
+    desc: "أرباح ثابتة تزيد مع رأس المال.",
+    icon: "🎮",
+    category: "games",
+    rewardLabel: "أرباح حسب رأس المال",
+  },
+  {
+    key: "daily_game_pro",
+    title: "لعبة يومية (مستثمر VIP)",
+    desc: "أرباح أعلى لأصحاب المحافظ الكبيرة.",
+    icon: "🔥",
+    category: "games",
+    rewardLabel: "أرباح عالية حسب رأس المال",
+  },
+
+  // الإحالات
+  {
+    key: "invite_friend",
+    title: "دعوة مستثمر جديد",
+    desc: "اربح 5$ عن كل صديق ينضم ويفعّل حسابه.",
+    icon: "👥",
+    category: "referral",
+    rewardLabel: "5$ لكل صديق",
+  },
+];
+
 export default function TasksPage() {
+  const router = useRouter();
+
   const [tasks, setTasks] = useState<UiTask[]>(
     TASKS.map((t) => ({ ...t, done: false, loading: false }))
   );
@@ -141,6 +147,7 @@ export default function TasksPage() {
         t.key === key ? { ...t, loading: true } : t
       )
     );
+    setError(null);
 
     try {
       const res = await fetch("/api/tasks", {
@@ -153,17 +160,21 @@ export default function TasksPage() {
 
       if (!res.ok || !data.success) {
         if (data?.message === "limit_reached") {
-          showError("لقد أنجزت هذه المهمة اليوم بالفعل.");
+          showError("لقد أكملت هذه المهمة الحد المسموح به لليوم.");
         } else if (data?.message === "cooldown") {
           const wait = Math.ceil(data.waitHours);
-          showError(`انتظر ${wait} ساعة قبل تكرار هذه المهمة.`);
+          showError(`انتظر حوالي ${wait} ساعة قبل إعادة تنفيذ هذه المهمة.`);
+        } else if (data?.error === "user_not_found") {
+          showError("المستخدم غير موجود.");
         } else {
-          showError("تعذر تنفيذ المهمة.");
+          showError("تعذر تنفيذ المهمة حالياً.");
         }
         return;
       }
 
-      const reward = data.rewardUSD;
+      const reward = data.rewardUSD as number | undefined;
+      const xp = data.rewardXP as number | undefined;
+      const level = data.level as number | undefined;
 
       setTasks((prev) =>
         prev.map((t) =>
@@ -173,9 +184,22 @@ export default function TasksPage() {
         )
       );
 
-      showMessage(`تم التنفيذ! +$${reward.toFixed(2)} · +${data.rewardXP} XP`);
+      const parts: string[] = [];
+      if (typeof reward === "number") parts.push(`+$${reward.toFixed(2)}`);
+      if (xp) parts.push(`+${xp} XP`);
+      if (level) parts.push(`المستوى: ${level}`);
+      showMessage(
+        parts.length ? `تمت المهمة بنجاح! ${parts.join(" · ")}` : "تمت المهمة!"
+      );
     } catch (e) {
+      console.error(e);
       showError("خطأ في الاتصال بالخادم.");
+    } finally {
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.key === key ? { ...t, loading: false } : t
+        )
+      );
     }
   }
 
@@ -193,7 +217,16 @@ export default function TasksPage() {
       return;
     }
 
-    // الألعاب + دعوة صديق + المهام اليومية
+    if (key === "daily_game_easy") {
+      router.push("/games?mode=easy");
+      return;
+    }
+
+    if (key === "daily_game_pro") {
+      router.push("/games?mode=pro");
+      return;
+    }
+
     completeTask(key);
   }
 
@@ -230,35 +263,46 @@ export default function TasksPage() {
       <button
         key={task.key}
         onClick={() => handleTaskClick(task.key)}
-        disabled={task.done || task.loading}
-        className={`rounded-2xl border px-4 py-4 text-right shadow-sm transition
+        disabled={task.loading || task.done}
+        className={`group relative flex flex-col items-start rounded-2xl border px-4 py-4 text-right transition shadow-sm
           ${
             task.done
-              ? "border-green-300 bg-green-50"
-              : "border-blue-200 bg-white hover:shadow-md hover:-translate-y-1"
+              ? "border-emerald-400/60 bg-emerald-500/10"
+              : "border-yellow-500/20 bg-black/60 hover:shadow-[0_0_25px_rgba(250,204,21,0.25)] hover:border-yellow-400/60"
           }`}
       >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl grid place-items-center bg-blue-100">
+        <div className="flex items-center gap-3 w-full">
+          <div className="w-10 h-10 rounded-2xl grid place-items-center bg-yellow-500/15 border border-yellow-500/40 text-xl text-yellow-300">
             {task.icon}
           </div>
-
           <div className="flex-1">
-            <h3 className="font-semibold">{task.title}</h3>
-            <p className="text-xs text-gray-500">{task.desc}</p>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="font-semibold text-yellow-50">
+                {task.title}
+              </h2>
+              {task.done && (
+                <span className="text-[10px] rounded-full bg-emerald-500/20 text-emerald-300 px-2 py-0.5 border border-emerald-400/60">
+                  منجزة
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-xs text-yellow-100/70">
+              {task.desc}
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-xs mt-3">
-          <span className="text-blue-700 font-medium">{task.rewardLabel}</span>
-
-          <span>
+        <div className="mt-3 flex items-center justify-between w-full text-[11px]">
+          <span className="text-yellow-300 font-medium">
+            {task.rewardLabel}
+          </span>
+          <span className="text-yellow-100/70">
             {task.loading
-              ? "جارٍ..."
+              ? "جارٍ التنفيذ..."
               : task.done
               ? task.lastReward
-                ? `ربحت $${task.lastReward.toFixed(2)}`
-                : "✓"
+                ? `ربحت ${task.lastReward.toFixed(2)}$`
+                : "تمت ✓"
               : "ابدأ"}
           </span>
         </div>
@@ -267,130 +311,165 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f3f7ff] px-4 py-6 max-w-4xl mx-auto space-y-6">
-      <h1 className="text-3xl font-bold text-[#0b1a2e]">
-        مهام Money AI اليومية
-      </h1>
+    <div className="min-h-[calc(100vh-64px)] bg-gradient-to-b from-black/80 via-black to-black/90">
+      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+        <header className="space-y-2">
+          <h1 className="text-2xl md:text-3xl font-bold text-yellow-50">
+            مهام BİPCOIN اليومية
+          </h1>
+          <p className="text-sm text-yellow-100/70 max-w-2xl">
+            نفّذ المهام البسيطة، جرّب ضربة الحظ والألعاب اليومية، واستخدم دعوة
+            الأصدقاء لتحويل وقتك داخل المنصّة إلى أرباح ذهبية حقيقية.
+          </p>
+        </header>
 
-      {banner && (
-        <div className="p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm">
-          {banner}
-        </div>
-      )}
-      {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-          {error}
-        </div>
-      )}
+        {banner && (
+          <div className="rounded-2xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+            {banner}
+          </div>
+        )}
+        {error && (
+          <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            {error}
+          </div>
+        )}
 
-      <section>
-        <h2 className="font-semibold mb-2">المهام اليومية</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          {daily.map(renderCard)}
-        </div>
-      </section>
+        {/* اليومية */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-yellow-200">
+            المهام اليومية
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            {daily.map(renderCard)}
+          </div>
+        </section>
 
-      <section>
-        <h2 className="font-semibold mb-2">ضربة الحظ</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          {lucky.map(renderCard)}
-        </div>
-      </section>
+        {/* ضربة الحظ */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-yellow-200">
+            ضربة الحظ الذهبية
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            {lucky.map(renderCard)}
+          </div>
+        </section>
 
-      <section>
-        <h2 className="font-semibold mb-2">الألعاب اليومية</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          {games.map(renderCard)}
-        </div>
-      </section>
+        {/* الألعاب */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-yellow-200">
+            الألعاب اليومية للمستثمرين
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            {games.map(renderCard)}
+          </div>
+        </section>
 
-      <section>
-        <h2 className="font-semibold mb-2">الإحالات</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          {referral.map(renderCard)}
-        </div>
-      </section>
+        {/* الإحالات */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-yellow-200">
+            برنامج الإحالات
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            {referral.map(renderCard)}
+          </div>
+        </section>
 
-      {/* Modal الإعلان */}
+        <p className="text-[11px] text-yellow-100/60 mt-4">
+          * كل مهمة يمكن تنفيذها حسب حدود اليوم والكول داون المحدد في نظام
+          BİPCOIN، ويتم احتساب المكافآت بالدولار الأمريكي داخل محفظتك.
+        </p>
+      </div>
+
+      {/* مودال الإعلان */}
       {showAdModal && (
-        <div className="fixed inset-0 bg-black/40 grid place-items-center p-4">
-          <div className="bg-white p-5 rounded-2xl border max-w-md w-full">
-            <h3 className="font-bold mb-2">مشاهدة إعلان</h3>
+        <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4">
+          <div className="w-full max-w-md rounded-2xl bg-black border border-yellow-500/40 shadow-[0_0_40px_rgba(250,204,21,0.35)] p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-yellow-50">
+                مشاهدة إعلان VIP
+              </h2>
+              <button
+                onClick={closeAdModal}
+                className="text-sm text-yellow-200/70 hover:text-yellow-300"
+              >
+                إغلاق
+              </button>
+            </div>
 
             {adStep === 1 && (
               <>
-                <p className="text-sm text-gray-600">
-                  شاهد إعلانًا لمدة 30 ثانية لتحصل على المكافأة.
+                <p className="text-sm text-yellow-100/80">
+                  شاهد إعلانًا قصيرًا لمدة 30 ثانية لتحصل على{" "}
+                  <span className="font-semibold text-yellow-300">+0.50$</span> و{" "}
+                  <span className="font-semibold text-yellow-300">+5 XP</span> في محفظة
+                  BİPCOIN الخاصة بك.
                 </p>
-
-                <div className="bg-gray-100 border rounded-xl h-40 mt-3 grid place-items-center">
-                  Placeholder الإعلان
+                <div className="mt-3 rounded-2xl bg-gradient-to-br from-yellow-500/10 via-black to-yellow-900/20 border border-yellow-500/40 h-40 grid place-items-center text-sm text-yellow-200/80">
+                  منطقة عرض الإعلان (Placeholder)
                 </div>
-
                 <button
-                  className="w-full mt-4 py-2 bg-blue-600 text-white rounded-xl"
                   onClick={() => setAdStep(2)}
+                  className="w-full mt-4 rounded-xl bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-sm font-semibold py-2.5"
                 >
-                  بدء الإعلان
+                  بدء مشاهدة الإعلان
                 </button>
               </>
             )}
 
             {adStep === 2 && (
               <>
-                <p className="text-sm text-gray-600">
-                  تم عرض الإعلان… اضغط لإنهاء المهمة.
+                <p className="text-sm text-yellow-100/80">
+                  تم افتراض عرض الإعلان… اضغط على الزر بالأسفل لتحصيل مكافأتك.
                 </p>
-
-                <div className="bg-yellow-100 border-yellow-300 border rounded-xl h-32 mt-3 grid place-items-center">
-                  ⏱️ الإعلان منتهي
+                <div className="mt-3 rounded-2xl bg-yellow-500/10 border border-yellow-500/60 h-32 grid place-items-center text-sm text-yellow-200/90">
+                  ⏱️ تم إكمال مدة الإعلان الوهمية
                 </div>
-
                 <button
-                  className="w-full mt-4 py-2 bg-green-600 text-white rounded-xl"
                   onClick={finishAd}
+                  className="w-full mt-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-semibold py-2.5"
                 >
-                  إنهاء وتحصيل المكافأة
+                  إنهاء الإعلان وتحصيل المكافأة
                 </button>
               </>
             )}
-
-            <button
-              className="text-sm text-gray-500 mt-3"
-              onClick={closeAdModal}
-            >
-              إغلاق
-            </button>
           </div>
         </div>
       )}
 
-      {/* Modal ضربة الحظ */}
+      {/* مودال ضربة الحظ */}
       {showLuckyModal && (
-        <div className="fixed inset-0 bg-black/40 grid place-items-center p-4">
-          <div className="bg-white p-5 rounded-2xl border max-w-md w-full">
-            <h3 className="font-bold mb-2">ضربة الحظ</h3>
+        <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4">
+          <div className="w-full max-w-md rounded-2xl bg-black border border-yellow-500/50 shadow-[0_0_45px_rgba(250,204,21,0.4)] p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-yellow-50">
+                ضربة حظ BİPCOIN الذهبية
+              </h2>
+              <button
+                onClick={closeLuckyModal}
+                className="text-sm text-yellow-200/70 hover:text-yellow-300"
+              >
+                إغلاق
+              </button>
+            </div>
 
-            <p className="text-sm text-gray-600">
-              يمكنك ربح مبلغ عشوائي بين 2$ و 20$.
+            <p className="text-sm text-yellow-100/80">
+              لديك فرصة كل{" "}
+              <span className="font-semibold text-yellow-300">3 أيام</span> لربح
+              مبلغ عشوائي بين{" "}
+              <span className="font-semibold text-yellow-300">2$</span> و{" "}
+              <span className="font-semibold text-yellow-300">20$</span> بالإضافة
+              إلى XP إضافي.
             </p>
 
-            <div className="bg-blue-50 border rounded-xl h-40 mt-3 grid place-items-center">
-              Placeholder عجلة الحظ
+            <div className="mt-3 rounded-2xl bg-gradient-to-br from-yellow-500/10 via-black to-yellow-900/20 border border-yellow-500/50 h-40 grid place-items-center text-sm text-yellow-200/90">
+              مكان عجلة الحظ / الأنيميشن (Placeholder)
             </div>
 
             <button
-              className="w-full mt-4 py-2 bg-orange-600 text-white rounded-xl"
               onClick={runLuckySpin}
+              className="w-full mt-4 rounded-xl bg-gradient-to-r from-yellow-400 via-yellow-500 to-amber-500 text-black text-sm font-semibold py-2.5"
             >
-              بدء ضربة الحظ
-            </button>
-
-            <button
-              className="text-sm text-gray-500 mt-3"
-              onClick={closeLuckyModal}
-            >
-              إغلاق
+              بدء ضربة الحظ الآن
             </button>
           </div>
         </div>
