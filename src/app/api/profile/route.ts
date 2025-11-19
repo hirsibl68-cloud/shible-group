@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // جلب المستخدم مع المحفظة
+    // جلب المستخدم + المحفظة
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { wallet: true },
@@ -25,22 +25,16 @@ export async function POST(req: Request) {
       );
     }
 
-    // قيم أساسية من جدول user + wallet
-    const balance = user.wallet?.balance ?? 0;
-    const xp = user.xp ?? 0;
-    const level = user.level ?? 1;
-
-    // نرجع بيانات عامة للبروفايل
     return NextResponse.json({
       success: true,
       data: {
         id: user.id,
-        name: (user as any).name ?? null, // لو عندك حقل name
-        email: (user as any).email ?? null,
-        balance,
-        xp,
-        level,
-        // حقول إضافية ممكن تستخدمها في الواجهة
+        name: (user as any).name ?? null,
+        balance: user.wallet?.balance ?? 0,
+        xp: user.xp ?? 0,
+        level: user.level ?? 1,
+
+        // حقول بلا مشاكل
         lastRewardAt: null,
         lastTaskAt: null,
       },
