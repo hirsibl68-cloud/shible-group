@@ -1,353 +1,220 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 
-type GameType = "daily_game_easy" | "daily_game_pro";
-const USER_ID = "nu1";
+type GameMode = "investor" | "normal";
 
-export default function GamesPage() {
-  const searchParams = useSearchParams();
-  const initialMode = searchParams.get("mode"); // "easy" أو "pro"
+type GameStatus = "idle" | "waiting" | "now" | "finished";
 
-  const [loading, setLoading] = useState<GameType | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (initialMode === "easy") {
-      // فقط نبرز لعبة easy مثلاً (ما في حاجة لفعل شيء إضافي الآن)
-    }
-  }, [initialMode]);
-
-  function resetAlerts() {
-    setMessage(null);
-    setError(null);
-  }
-
-  async function completeGame(type: GameType) {
-    setLoading(type);
-    resetAlerts();
-
-    try {
-      const res = await fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: USER_ID, taskKey: type }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        if (data?.message === "limit_reached") {
-          setError("لقد لعبت هذه اللعبة الحد المسموح به لليوم.");
-        } else if (data?.message === "cooldown") {
-          const wait = Math.ceil(data.waitHours);
-          setError(`لا يمكنك لعب هذه اللعبة الآن، حاول بعد حوالي ${wait} ساعة.`);
-        } else {
-          setError("لا يمكنك لعب هذه اللعبة الآن، حاول لاحقاً.");
-        }
-        return;
-      }
-
-      const reward = data.rewardUSD as number;
-      setMessage(`🎉 ربحت +$${reward.toFixed(2)} · +${data.rewardXP} XP`);
-    } catch (e) {
-      console.error(e);
-      setError("خطأ في الاتصال بالخادم.");
-    } finally {
-      setLoading(null);
-    }
-  }
-
-  return (
-    <div className="min-h-screen bg-[#f3f7ff] px-4 py-6 max-w-4xl mx-auto space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-3xl font-bold text-[#0b1a2e]">🎮 ألعاب Money AI</h1>
-        <p className="text-gray-600 text-sm">
-          العب الألعاب اليومية واربح مكافآت حقيقية تضاف مباشرة إلى محفظتك الاستثمارية.
-        </p>
-      </header>
-
-      {message && (
-        <div className="p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm">
-          {message}
-        </div>
-      )}
-      {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-          {error}
-        </div>
-      )}
-
-      <div className="grid md:grid-cols-2 gap-5">
-        <EasyClickGame
-          loading={loading === "daily_game_easy"}
-          onFinish={() => completeGame("daily_game_easy")}
-        />
-        <ReactionGame
-          loading={loading === "daily_game_pro"}
-          onFinish={() => completeGame("daily_game_pro")}
-        />
-      </div>
-
-      <p className="text-[12px] text-gray-500 mt-3 text-center">
-        * يمكن لعب كل لعبة مرة واحدة يوميًا (أو حسب إعدادات المهمة في قاعدة البيانات).
-      </p>
-    </div>
-  );
-}
-
-/* ===========================
-   لعبة 1: Click Game (عادي)
-   =========================== */
-
-type EasyProps = {
-  loading: boolean;
-  onFinish: () => Promise<void>;
-};
-
-function EasyClickGame({ loading, onFinish }: EasyProps) {
-  const [status, setStatus] = useState<"idle" | "running" | "finished">(
-    "idle"
-  );
-  const [timeLeft, setTimeLeft] = useState<number>(10);
-  const [clicks, setClicks] = useState<number>(0);
-  const timerRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current !== null) window.clearInterval(timerRef.current);
-    };
-  }, []);
+function ReactionGame({
+  mode,
+}: {
+  mode: GameMode;
+}) {
+  const [status, setStatus] = useState<GameStatus>("idle");
+  const [message, setMessage] = useState<string>("اضغط على الزر لبدء اللعبة.");
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [reaction, setReaction] = useState<number | null>(null);
 
   function startGame() {
-    if (loading) return;
-    setStatus("running");
-    setTimeLeft(10);
-    setClicks(0);
-
-    if (timerRef.current !== null) window.clearInterval(timerRef.current);
-
-    const id = window.setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          window.clearInterval(id);
-          timerRef.current = null;
-          finishGame();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    timerRef.current = id;
-  }
-
-  async function finishGame() {
-    setStatus("finished");
-    await onFinish();
-  }
-
-  function handleAreaClick() {
-    if (status !== "running") return;
-    setClicks((c) => c + 1);
-  }
-
-  return (
-    <div className="rounded-2xl border border-blue-200 bg-white p-5 shadow-sm flex flex-col gap-3">
-      <div className="flex items-center gap-3">
-        <div className="text-3xl">🎮</div>
-        <div>
-          <h3 className="text-lg font-bold text-[#0b1a2e]">
-            اللعبة اليومية – مستوى عادي
-          </h3>
-          <p className="text-sm text-gray-600">
-            اضغط بأقصى سرعة خلال 10 ثواني. بعد انتهاء الوقت يتم احتساب مكافأة اللعبة.
-          </p>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between text-xs mt-1 text-gray-600">
-        <span>
-          ⏱️ الوقت المتبقي:{" "}
-          <span className="font-semibold text-[#0b1a2e]">{timeLeft}s</span>
-        </span>
-        <span>
-          👆 عدد النقرات:{" "}
-          <span className="font-semibold text-[#0b1a2e]">{clicks}</span>
-        </span>
-      </div>
-
-      <div
-        onClick={handleAreaClick}
-        className={`mt-3 h-40 rounded-2xl border grid place-items-center text-sm font-semibold cursor-pointer select-none transition
-          ${
-            status === "running"
-              ? "bg-blue-100 border-blue-300 text-blue-800"
-              : "bg-gray-100 border-gray-300 text-gray-500"
-          }`}
-      >
-        {status === "idle" && "اضغط زر البدء ثم انقر هنا بأقصى سرعة!"}
-        {status === "running" && "اضغط! اضغط! اضغط! 🔥"}
-        {status === "finished" && "انتهى الوقت! تم حفظ مكافأتك."}
-      </div>
-
-      <button
-        disabled={loading || status === "running"}
-        onClick={startGame}
-        className={`w-full mt-3 py-2 rounded-xl text-white font-semibold transition
-          ${
-            loading || status === "running"
-              ? "bg-blue-300 cursor-not-allowed"
-              : "bg-blue-600 hover:bg-blue-700"
-          }`}
-      >
-        {loading
-          ? "جاري حفظ مكافأتك..."
-          : status === "running"
-          ? "اللعبة قيد التشغيل"
-          : "ابدأ اللعبة الآن"}
-      </button>
-    </div>
-  );
-}
-
-/* ===========================
-   لعبة 2: Reaction / Lucky Tap
-   =========================== */
-
-type ReactionProps = {
-  loading: boolean;
-  onFinish: () => Promise<void>;
-};
-
-function ReactionGame({ loading, onFinish }: ReactionProps) {
-  const [status, setStatus] = useState<
-    "idle" | "waiting" | "ready" | "tooSoon" | "success"
-  >("idle");
-  const [reactionTime, setReactionTime] = useState<number | null>(null);
-  const timeoutRef = useRef<number | null>(null);
-  const startRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
-    };
-  }, []);
-
-  function startChallenge() {
-    if (loading) return;
+    if (status === "waiting") return;
 
     setStatus("waiting");
-    setReactionTime(null);
+    setMessage("⏳ انتظر… لا تضغط حتى تظهر إشارة الذهب!");
 
-    if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
+    // وقت عشوائي بين 1 و 4 ثواني
+    const delay = 1000 + Math.random() * 3000;
 
-    const delay = 1000 + Math.random() * 3000; // من 1 إلى 4 ثواني
-    const id = window.setTimeout(() => {
-      startRef.current = Date.now();
-      setStatus("ready");
+    setTimeout(() => {
+      setStatus("now");
+      setMessage("✨ اضغط الآن فورًا!");
+      setStartTime(Date.now());
     }, delay);
-
-    timeoutRef.current = id;
   }
 
-  async function handleTap() {
-    // ضغط مبكر
-    if (status === "waiting") {
-      if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
-      setStatus("tooSoon");
-      startRef.current = null;
+  function handleClick() {
+    if (status === "idle") {
+      startGame();
       return;
     }
 
-    // ضغط صحيح
-    if (status === "ready") {
-      const end = Date.now();
-      if (startRef.current) {
-        const diff = end - startRef.current;
-        setReactionTime(diff);
-      }
-      setStatus("success");
-      startRef.current = null;
+    if (status === "waiting") {
+      setStatus("finished");
+      setMessage("❌ استعجلت وضغطت قبل الوقت! جرّب مرة أخرى.");
+      setReaction(null);
+      setStartTime(null);
+      return;
+    }
 
-      await onFinish();
+    if (status === "now" && startTime) {
+      const diff = Date.now() - startTime;
+      setReaction(diff);
+      setStatus("finished");
+
+      let extra =
+        mode === "investor"
+          ? "كلما كان رد فعلك أسرع، زادت أرباحك كمستثمر."
+          : "رد فعل جميل! العب يوميًا لزيادة أرباحك.";
+
+      setMessage(`✅ زمن رد فعلك: ${diff}ms. ${extra}`);
+      setStartTime(null);
+      return;
+    }
+
+    if (status === "finished") {
+      // إعادة من جديد
+      setStatus("idle");
+      setReaction(null);
+      setMessage("اضغط على الزر لبدء اللعبة.");
+      return;
     }
   }
 
-  let info = "";
-  if (status === "idle") {
-    info = "اضغط زر بدء التحدي، ثم انتظر حتى يتحول المربع إلى أخضر واضغط بأسرع ما يمكن.";
-  } else if (status === "waiting") {
-    info = "انتظر... لا تضغط حتى يتحول اللون إلى أخضر.";
-  } else if (status === "ready") {
-    info = "اضغط الآن بسرعة! ⚡";
-  } else if (status === "tooSoon") {
-    info = "ضغطت مبكرًا! جرّب مرة أخرى.";
-  } else if (status === "success") {
-    info = reactionTime
-      ? `ردة فعلك كانت ${reactionTime}ms`
-      : "محاولة ناجحة!";
-  }
+  const modeLabel =
+    mode === "investor" ? "لعبة يومية (مستثمر)" : "لعبة يومية (عادي)";
 
   return (
-    <div className="rounded-2xl border border-blue-200 bg-white p-5 shadow-sm flex flex-col gap-3">
-      <div className="flex items-center gap-3">
-        <div className="text-3xl">⚡</div>
+    <div className="mt-6 rounded-3xl border border-yellow-500/30 bg-black/60 px-5 py-6 shadow-[0_0_40px_rgba(250,204,21,0.1)]">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h3 className="text-lg font-bold text-[#0b1a2e]">
-            لعبة المستثمر – ردة الفعل
-          </h3>
-          <p className="text-sm text-gray-600">
-            اختبر سرعة ردة فعلك. عند تحوّل المربع إلى أخضر، اضغط فورًا لتحصل على مكافأة المستثمر.
+          <p className="text-xs uppercase tracking-[0.2em] text-yellow-500/80">
+            BİPCOIN VIP GAME
           </p>
+          <h2 className="mt-1 text-lg font-semibold text-white">
+            {modeLabel}
+          </h2>
+          <p className="mt-1 text-sm text-gray-300">
+            انتظر حتى تضيء إشارة الذهب ثم اضغط بأسرع ما يمكن. يتم تسجيل زمن
+            استجابتك ويمكن ربطه لاحقًا بنظام الأرباح داخل المنصة.
+          </p>
+        </div>
+
+        <div className="mt-3 flex flex-col items-end gap-1 md:mt-0">
+          <span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-xs text-yellow-300">
+            {mode === "investor"
+              ? "أرباح حسب رأس مال المستثمر"
+              : "أرباح يومية ثابتة"}
+          </span>
+          <span className="text-xs text-gray-400">
+            * هذه لعبة تجريبية، يمكن ربطها API بالمحفظة لاحقًا.
+          </span>
         </div>
       </div>
 
-      <p className="text-xs text-gray-600">{info}</p>
+      <div className="mt-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex-1">
+          <div className="rounded-2xl border border-yellow-500/30 bg-gradient-to-br from-yellow-500/10 via-black to-yellow-500/5 px-4 py-3">
+            <p className="text-sm text-yellow-100">{message}</p>
+          </div>
 
-      <div
-        onClick={handleTap}
-        className={`mt-2 h-40 rounded-2xl border grid place-items-center text-sm font-semibold cursor-pointer select-none transition
-          ${
-            status === "ready"
-              ? "bg-green-400 border-green-600 text-white"
-              : status === "waiting"
-              ? "bg-red-400 border-red-600 text-white"
-              : status === "tooSoon"
-              ? "bg-yellow-100 border-yellow-300 text-yellow-800"
-              : status === "success"
-              ? "bg-blue-100 border-blue-300 text-blue-800"
-              : "bg-gray-100 border-gray-300 text-gray-600"
-          }`}
-      >
-        {status === "idle" && "منطقة التحدي ستتغير بعد الضغط على زر البدء."}
-        {status === "waiting" && "انتظر اللون الأخضر… لا تضغط الآن."}
-        {status === "ready" && "اضغط الآن! ⚡"}
-        {status === "tooSoon" && "ضغطت مبكرًا! اضغط زر البدء مرة أخرى."}
-        {status === "success" &&
-          (reactionTime
-            ? `ردة فعلك: ${reactionTime}ms`
-            : "محاولة ناجحة!")}
+          {reaction !== null && (
+            <p className="mt-3 text-sm font-semibold text-green-400">
+              🔥 نتيجتك: {reaction}ms
+            </p>
+          )}
+        </div>
+
+        <div className="mt-4 md:mt-0 md:w-52 flex flex-col items-stretch gap-3">
+          <button
+            onClick={handleClick}
+            className="w-full rounded-2xl bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-300 px-4 py-3 text-sm font-bold text-black shadow-[0_0_30px_rgba(250,204,21,0.5)] hover:brightness-110 active:scale-[0.98] transition"
+          >
+            {status === "idle" && "ابدأ اللعبة الآن"}
+            {status === "waiting" && "لا تضغط… انتظر الإشارة"}
+            {status === "now" && "اضغط فورًا!"}
+            {status === "finished" && "إعادة اللعب"}
+          </button>
+
+          <div className="rounded-2xl border border-gray-700 bg-gray-900/80 px-3 py-2 text-xs text-gray-300">
+            <p className="font-semibold text-gray-200">ملاحظة ربحية:</p>
+            {mode === "investor" ? (
+              <p className="mt-1">
+                يمكن جعل كل محاولة ناجحة تضيف ربحًا نسبيًا حسب رصيد المستثمر
+                (مثلاً 0.2% من رأس المال مع سقف يومي).
+              </p>
+            ) : (
+              <p className="mt-1">
+                يمكن جعل كل نتيجة تحت 300ms تعطي ربحًا صغيرًا ثابتًا (مثلاً
+                0.20$) مع حد أقصى لعدد المحاولات في اليوم.
+              </p>
+            )}
+          </div>
+        </div>
       </div>
+    </div>
+  );
+}
 
-      <button
-        disabled={loading || status === "waiting" || status === "ready"}
-        onClick={startChallenge}
-        className={`w-full mt-3 py-2 rounded-xl text-white font-semibold transition
-          ${
-            loading || status === "waiting" || status === "ready"
-              ? "bg-purple-300 cursor-not-allowed"
-              : "bg-purple-600 hover:bg-purple-700"
-          }`}
-      >
-        {loading
-          ? "جاري حفظ مكافأتك..."
-          : status === "waiting" || status === "ready"
-          ? "التحدي قيد التشغيل..."
-          : "ابدأ التحدي الآن"}
-      </button>
+export default function GamesPage() {
+  const [mode, setMode] = useState<GameMode>("investor");
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-black via-[#050509] to-black">
+      <div className="mx-auto flex max-w-4xl flex-col gap-5 px-4 py-8">
+        {/* العنوان العلوي */}
+        <header className="space-y-2">
+          <p className="text-xs uppercase tracking-[0.3em] text-yellow-500/80">
+            BİPCOIN
+          </p>
+          <h1 className="text-2xl md:text-3xl font-bold text-white">
+            ألعاب BİPCOIN اليومية
+          </h1>
+          <p className="text-sm text-gray-300">
+            العب بشكل يومي، وحوّل تفاعلك وسرعة رد فعلك إلى أرباح حقيقية داخل
+            محفظة BİPCOIN. التصميم VIP بالذهب والأسود ليعكس مستوى المستثمرين.
+          </p>
+        </header>
+
+        {/* اختيار نوع اللعبة */}
+        <section className="rounded-3xl border border-yellow-500/30 bg-black/70 p-4 shadow-[0_0_40px_rgba(0,0,0,0.7)]">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-yellow-100">
+                اختر نوع اللعبة
+              </h2>
+              <p className="mt-1 text-xs text-gray-400">
+                يمكنك التبديل بين لعبة المستثمر (مرتبطة برأس المال) ولعبة
+                عادية بأرباح ثابتة.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-2xl bg-gray-900/80 p-1">
+              <button
+                onClick={() => setMode("investor")}
+                className={`flex-1 rounded-2xl px-3 py-1.5 text-xs font-semibold transition ${
+                  mode === "investor"
+                    ? "bg-gradient-to-r from-yellow-500 to-yellow-300 text-black shadow"
+                    : "text-gray-300 hover:bg-gray-800"
+                }`}
+              >
+                مستثمر
+              </button>
+              <button
+                onClick={() => setMode("normal")}
+                className={`flex-1 rounded-2xl px-3 py-1.5 text-xs font-semibold transition ${
+                  mode === "normal"
+                    ? "bg-gradient-to-r from-yellow-500 to-yellow-300 text-black shadow"
+                    : "text-gray-300 hover:bg-gray-800"
+                }`}
+              >
+                عادي
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* اللعبة نفسها */}
+        <ReactionGame mode={mode} />
+
+        {/* ملاحظة نهائية */}
+        <p className="mt-4 text-[11px] text-gray-500">
+          * هذه الصفحة هي واجهة الألعاب فقط. يمكن لاحقًا ربط نتائج اللعبة مع
+          نظام المهام والمحفظة في BİPCOIN عبر API مثل{" "}
+          <span className="text-yellow-400">/api/tasks</span> أو{" "}
+          <span className="text-yellow-400">/api/games</span> لحساب الأرباح
+          اليومية تلقائيًا.
+        </p>
+      </div>
     </div>
   );
 }
