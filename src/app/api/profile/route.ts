@@ -12,7 +12,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // جلب المستخدم + المحفظة
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { wallet: true },
@@ -30,17 +29,17 @@ export async function POST(req: Request) {
       data: {
         id: user.id,
         name: (user as any).name ?? null,
+        email: (user as any).email ?? null,
         balance: user.wallet?.balance ?? 0,
         xp: user.xp ?? 0,
         level: user.level ?? 1,
 
-        // حقول بلا مشاكل
+        // حذف كل شيء يتعلق بـ "date"
         lastRewardAt: null,
         lastTaskAt: null,
       },
     });
   } catch (e) {
-    console.error("PROFILE ERROR:", e);
     return NextResponse.json(
       { success: false, error: "server_error" },
       { status: 500 }
